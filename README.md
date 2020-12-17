@@ -15,7 +15,7 @@ My goal is to build a customizable set of scripts to allow demographic inference
  * python > 3
  * sk-allel
  * numpy
- * pandas
+ * pandas  
  *optional*
  * msprime + tskit
  * [msbgs](https://zeng-lab.group.shef.ac.uk/wordpress/?page_id=28)
@@ -27,18 +27,18 @@ My goal is to build a customizable set of scripts to allow demographic inference
  * sk-allel
  * numpy
  * pandas
- *optional*
+ *optional*  
  * [twoPopnStats_forML](https://github.com/kr-colab/FILET)
  * momentsLD
 
 ### recommended workflow
 run_sims.py --ms msprime (consider using MMC if training set for selection)
 run_sims.py --ms msbgs (adds sites with background selection)
-run_stats.py
-[abcrf](https://cran.r-project.org/web/packages/abcrf/index.html) (for importance rankings on parameter inference)
-[abc](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf)
+run_stats.py  
+[abcrf](https://cran.r-project.org/web/packages/abcrf/index.html) (for importance rankings on parameter inference)  
+[abc](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf)  
 
-[MMC primer](https://pubmed.ncbi.nlm.nih.gov/24750385/)
-[MMC-ABC](https://pubmed.ncbi.nlm.nih.gov/30651284/)
-[MMC Selection](https://pubmed.ncbi.nlm.nih.gov/32396636/)
+[MMC primer](https://pubmed.ncbi.nlm.nih.gov/24750385/)  
+[MMC-ABC](https://pubmed.ncbi.nlm.nih.gov/30651284/)  
+[MMC Selection](https://pubmed.ncbi.nlm.nih.gov/32396636/)  
 
