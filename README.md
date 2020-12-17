@@ -39,7 +39,7 @@ run_stats.py
 [abc](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf) (for parameter inference)
 
 ### notes on multiple merger coalescence (MMC)
-[MMC primer](https://pubmed.ncbi.nlm.nih.gov/24750385/)
+[MMC primer](https://pubmed.ncbi.nlm.nih.gov/24750385/)  
 [MMC-ABC](https://pubmed.ncbi.nlm.nih.gov/30651284/)  
 [MMC Selection](https://pubmed.ncbi.nlm.nih.gov/32396636/)  
 
