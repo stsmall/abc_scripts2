@@ -11,32 +11,29 @@ My goal is to build a customizable set of scripts to allow demographic inference
 2. Stats implemented in [Jay et al. 2019](https://doi.org/10.1093/molbev/msz038)
 
 ### run_sims.py
- --*required*--  
- * python > 3
- * sk-allel
- * numpy
+ *required*  
+ * python > 3  
+ * sk-allel   
+ * numpy  
  * pandas  
- --*optional*--
- * msprime + tskit
+ * msprime  
  * [msbgs](https://zeng-lab.group.shef.ac.uk/wordpress/?page_id=28)
  * [discoal](https://github.com/kr-colab/discoal)
 
 ### run_stats.py
- --*required*--  
  * python > 3
  * sk-allel
  * numpy
  * pandas  
- --*optional*--  
  * [twoPopnStats_forML](https://github.com/kr-colab/FILET)
  * momentsLD
 
 ### recommended workflow
 run_sims.py --ms msprime (consider using MMC if training set for selection)  
-run_sims.py --ms msbgs (adds sites with background selection)
+run_sims.py --ms msbgs (adds sites with background selection)  
 run_stats.py obs  
 run_stats.py sims  
-[abcrf](https://cran.r-project.org/web/packages/abcrf/index.html) (for importance rankings on parameter inference)    
+[abcrf](https://cran.r-project.org/web/packages/abcrf/index.html) (for importance rankings on parameter inference)      
 [abc](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf) (for parameter inference)  
 
 ### notes on multiple merger coalescence (MMC)
