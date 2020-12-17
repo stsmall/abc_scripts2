@@ -11,7 +11,6 @@ My goal is to build a customizable set of scripts to allow demographic inference
 2. Stats implemented in [Jay et al. 2019](https://doi.org/10.1093/molbev/msz038)
 
 ### run_sims.py
- *required*  
  * python > 3  
  * sk-allel   
  * numpy  
