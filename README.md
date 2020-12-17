@@ -16,7 +16,7 @@ My goal is to build a customizable set of scripts to allow demographic inference
  * sk-allel
  * numpy
  * pandas  
- *optional*
+ --*optional*--
  * msprime + tskit
  * [msbgs](https://zeng-lab.group.shef.ac.uk/wordpress/?page_id=28)
  * [discoal](https://github.com/kr-colab/discoal)
@@ -26,8 +26,8 @@ My goal is to build a customizable set of scripts to allow demographic inference
  * python > 3
  * sk-allel
  * numpy
- * pandas
- *optional*  
+ * pandas  
+ --*optional*--  
  * [twoPopnStats_forML](https://github.com/kr-colab/FILET)
  * momentsLD
 
@@ -36,9 +36,10 @@ run_sims.py --ms msprime (consider using MMC if training set for selection)
 run_sims.py --ms msbgs (adds sites with background selection)
 run_stats.py  
 [abcrf](https://cran.r-project.org/web/packages/abcrf/index.html) (for importance rankings on parameter inference)  
-[abc](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf)  
+[abc](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf) (for parameter inference)
 
-[MMC primer](https://pubmed.ncbi.nlm.nih.gov/24750385/)  
+### notes on multiple merger coalescence (MMC)
+[MMC primer](https://pubmed.ncbi.nlm.nih.gov/24750385/)
 [MMC-ABC](https://pubmed.ncbi.nlm.nih.gov/30651284/)  
 [MMC Selection](https://pubmed.ncbi.nlm.nih.gov/32396636/)  
 
