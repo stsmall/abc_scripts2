@@ -5,11 +5,9 @@ Created on Wed Dec 16 20:32:28 2020
 @author: Scott T. Small
 
 """
-import sys
 import numpy as np
 import pandas as pd
 from tqdm import trange
-
 
 
 def selection_parse(model_dict, ms_dict):
@@ -30,7 +28,7 @@ def selection_parse(model_dict, ms_dict):
     # sel params
     sel_dict = model_dict["sel_dict"]
     pop0_Ne = sel_dict["pop0_Ne"]
-    if pop0_Ne == 0:
+    if not pop0_Ne:
         pop0_Ne = scaled_Ne
     sweep_Ne = sel_dict["sweep_Ne"]
     alpha = sel_dict["alpha"]
@@ -140,77 +138,68 @@ def sim_syntax(model_dict):
 
     """
     ms_dict = {}
-
     # populations
     sample_sizes = model_dict["sampleSize"]
     npops = len(sample_sizes)
-    ploidy = model_dict["ploidy"] * 2
+    ploidy = model_dict["ploidy"]
     locus_len = model_dict["contig_length"]
+
+    # get Ne
     effective_size = model_dict["eff_size"]
-
-    # need theta
-    theta_arr = model_dict["theta"]
-    if len(theta_arr) == 1:
-        # command line or just 1 entry in file
-        theta_nuc = theta_arr
+    if type(effective_size) == list:
+        low, high = effective_size
+        scaled_Ne = np.random.randint(low, high)
     else:
-        theta_nuc = np.random.choice(theta_arr)
-    theta_loc = theta_nuc * locus_len
-
-    # need scaled Ne
-    mut_rate = model_dict["mutation_rate"]
-    if mut_rate:
-        if type(mut_rate) == list:
-            low, high = mut_rate
-            mut_rate = np.random.uniform(low, high)
-        scaled_Ne = (ploidy/4.0) * int(np.round((theta_nuc/(4*mut_rate))))
-    elif effective_size:
         scaled_Ne = effective_size
-    else:
-        raise ValueError("must provide mutation rate or effective size")
-        return None
+    scaled_Ne = scaled_Ne * ploidy
 
-    # recombination rate
-    rho_arr = model_dict["rho"]
-    rho_mu = model_dict["rho_mu"]
-    rec_rate = model_dict["recombination_rate"]
-    if len(rho_arr) == 1:
-        rho = rho_arr * locus_len
-    elif rho_mu:
-        rho = theta_loc * rho_mu
-    elif len(rho_arr) > 1:
-        rho = np.random.choice(rho_arr) * locus_len
-    elif rec_rate:
-        if type(rec_rate) == list:
-            low, high = rec_rate
-            rec_rate = np.random.uniform(low, high)
-        rho = ploidy*scaled_Ne*rec_rate * locus_len
+    # calc theta
+    mut_rate = model_dict["mutation_rate"]
+    if type(mut_rate) == list:
+        if len(mut_rate) == 2:
+            low, high = mut_rate
+            mu = np.random.uniform(low, high)
+        else:
+            mu = np.random.choice(mut_rate)
     else:
+        mu = mut_rate
+    theta_loc = 4 * scaled_Ne * mu * locus_len
+
+    # calc rho rate
+    rec_rate = model_dict["recombination_rate"]
+    if type(rec_rate) == list:
+        if len(rec_rate) == 2:
+            low, high = mut_rate
+            rho = np.random.uniform(low, high)
+        else:
+            rho = np.random.choice(rec_rate)
+    elif rec_rate is None:
         rho = 0
+    else:
+        rho = rec_rate
+    rho_loc = 4 * scaled_Ne * rho * locus_len
 
     # gene conversion
     gen_conversion = model_dict["gene_conversion"][0]
     if gen_conversion > 0:
         tract = model_dict["gene_conversion"][1]
-        gen_cov = f"-gr {gen_conversion*rho} {tract}"
+        gen_cov = f"-gr {gen_conversion / rec_rate} {tract}"
     else:
         gen_cov = ""
 
     # subops
-    init_sizes = [size * (ploidy/4.0) for size in model_dict["initialSize"]]
-    grow_rate = model_dict["growthRate"]
+    init_sizes = [size * ploidy for size in model_dict["initialSize"]]
     mig_mat = model_dict["migMat"]
     subpops = f"-p {npops} {' '.join(map(str, sample_sizes))}"
     ne_sub_pops = [f"-en 0 {i} {pop_ne/scaled_Ne}" for i, pop_ne in enumerate(init_sizes)]
     ne_subpop = " ".join(ne_sub_pops)
-    grow_subpop = []
     if mig_mat:
         mig = []
         mig_matrix = zip(*mig_mat)
         for p, pop_m in enumerate(mig_matrix):
             for i, m in pop_m:
                 if p != i and m > 0:
-                    mig.append(f"-m {p} {i} {m}")
+                    mig.append(f"-m {p} {i} {4*scaled_Ne*m}")
     else:
         mig_matrix = ""
 
@@ -218,10 +207,9 @@ def sim_syntax(model_dict):
                "subpop": subpops,
                "theta_loc": theta_loc,
                "scaled_Ne": scaled_Ne,
-               "rho_loc": rho,
+               "rho_loc": rho_loc,
                "gen_cov": gen_cov,
                "ne_subpop": ne_subpop,
-               "grow_subpop": grow_subpop,
                "mig_matrix": mig_matrix}
 
     return ms_dict
@@ -245,7 +233,6 @@ def model_discoal(model_dict, ms_dict, demo_df):
         DESCRIPTION.
 
     """
-    ploidy = model_dict["ploidy"] * 2
     scaled_Ne = ms_dict["scaled_Ne"]
     init_size = list(model_dict["initialSize"])
     dem_list = []
@@ -255,19 +242,19 @@ def model_discoal(model_dict, ms_dict, demo_df):
     demo_df_srt.sort_index(inplace=True)
     # "time": float, "event": [Ne, ej, tes, tm], "pop": [0-9], "value": float
     for time, row in demo_df_srt.iterrows():
-        new_time = time / (ploidy*scaled_Ne)
+        new_time = time / (4*scaled_Ne)  # 4N0gens
         event = row["event"]
         if "Ne" in event:
             pop = int(row["pop"])
-            size = row["value"][0]
-            grow = row["value"][1]
+            if len(row["value"]) > 1:
+                low, high = row["value"]
+                size = np.random.randint(low, high)
+            else:
+                size = row["value"][0]
             init_size[pop] = size
             if pop not in sourcelist:
                 new_Ne = size / scaled_Ne
-                if grow > 0:
-                    dem_list.append(f"-en {new_time} {pop} {new_Ne} {grow}")
-                else:
-                    dem_list.append(f"-en {new_time} {pop} {new_Ne}")
+                dem_list.append(f"-en {new_time} {pop} {new_Ne}")
         elif "ej" in event:
             pop1, pop2 = row["pop"]
             pop1 = int(pop1)
@@ -289,8 +276,8 @@ def model_discoal(model_dict, ms_dict, demo_df):
             pop1, pop2 = row["pop"]
             pop1 = int(pop1)
             pop2 = int(pop2)
-            mig1 = row["value"]*ploidy*init_size[pop1]
-            mig2 = row["value"]*ploidy*init_size[pop2]
+            mig1 = row["value"]*4*scaled_Ne
+            mig2 = row["value"]*4*scaled_Ne
             if not any(i in sourcelist for i in [pop1, pop2]):
                 if "ms" in event:  # set as symmetrical
                     dem_list.append(f"-m {new_time} {pop1} {pop2} {mig1}")
@@ -325,6 +312,7 @@ def command_line(model_dict, demo_df, ms_path, seed):
         list of random parameters for that simulation
 
     """
+    # TODO: set seed to iteration to run in parallel
     seed_ls = [seed, np.random.randint(1, 2**32-1, 1), np.random.randint(1, 2**32-1, 1)]
     # rescale
     ms_dict = sim_syntax(model_dict)
@@ -349,7 +337,6 @@ def command_line(model_dict, demo_df, ms_path, seed):
                 'basepairs': model_dict["contig_length"],
                 'subpops': ms_dict["subpop"],
                 'ne_subpop': ms_dict["ne_subpop"],
-                'growth_subpop': ms_dict["grow_subpop"],
                 'migmat': ms_dict["mig_matrix"],
                 'demo': " ".join(dem_events),
                 'sel': " ".join(sel_list)

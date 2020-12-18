@@ -46,7 +46,7 @@ logging.basicConfig(filename=logout, filemode='w', encoding='utf-8', level=loggi
 # =========================================================================
 
 
-def write_priors(eventkey_dict, params_dict):
+def write_priors(param_df, outfile):
     """Write priors to file.
 
     Parameters
@@ -112,17 +112,10 @@ def parse_args(args_in):
                         " replications alter loci in config file")
     parser.add_argument("--ms", type=str, default="msprime",
                         help=" full path to discoal/msbgs exe")
-    parser.add_argument("--out", type=str, required=True,
+    parser.add_argument("--out", type=str, default="model",
                         help="outfilename to write simulations")
-    parser.add_argument("--ploidy", type=float, default=2,
-                        help="options: hap=1, sex=1.5, auto=2")
-    parser.add_argument("--set_rho", type=float,
-                        help="value of rho per bp, overides rhomu")
-    parser.add_argument("--rhomu", type=float,
-                        help="ratio of rho/mu, overides recombination rate priors")
-    parser.add_argument("--set_theta", type=float,
-                        help="value of theta per bp. Requires a mutation rate in config,"
-                        "else use effective_size in config")
+    parser.add_argument("--ploidy", type=float, default=1,
+                        help="options: hap=0.5, sex=0.75, auto=1")
     parser.add_argument("--set_priors", type=str,
                         help="provide a list of priors to be reused will overide"
                         " all other parameters")
@@ -137,14 +130,17 @@ def main():
     # =========================================================================
     configFile = args.configFile
     model_file = args.modelFile
-    outfile = args.out
     sim_number = args.iterations
     ms_path = args.ms
+    outfile = args.out
     ploidy = args.ploidy
-    rho_mu = args.rhomu
-    theta = args.set_theta
-    rho = args.set_rho
     priors_df = args.set_priors
+
+    model_dir = os.path.abspath(model_file)
+    out_path = os.path.split(model_dir)[0]
+    if not outfile:
+        outfile = os.path.split(model_dir)[1]
+    sim_path = os.path.join(out_path, f"{outfile}.{sim_number}.sims.out")
     # =========================================================================
     #  Config parser
     # =========================================================================
@@ -156,28 +152,48 @@ def main():
     sim = "simulation"
     contig_len = config.getint(sim, "contiglen")
     num_loci = config.getint(sim, "loci")
+
+    effective_size = config.get(sim, "effective_population_size")
+    if "," in effective_size:
+        effective_size = list(map(int, effective_size.split(",")))
+    else:
+        effective_size = int(effective_size)
+
     recomb_rate = config.get(sim, "recombination_rate")
     if recomb_rate:
         if "," in recomb_rate:
             recomb_rate = list(map(float, recomb_rate.split(",")))
-        else:
+        elif recomb_rate[0].isalpha():
+            if os.path.exists(recomb_rate):
+                print(f"loading {recomb_rate} ...")
+                recomb_rate = np.loadtxt(recomb_rate)
+            else:
+                print(f"loading {os.path.join(config_path, recomb_rate)} ...")
+                recomb_rate = np.loadtxt(os.path.join(config_path, recomb_rate))
+        elif recomb_rate[0].isdigit():
             recomb_rate = float(recomb_rate)
+        else:
+            print("recombination not given, setting to 0")
     mutation_rate = config.get(sim, "mutation_rate")
     if mutation_rate:
         if "," in mutation_rate:
             mutation_rate = list(map(float, mutation_rate.split(",")))
-        else:
+        elif mutation_rate[0].isalpha():
+            if os.path.exists(mutation_rate):
+                print(f"loading {mutation_rate} ...")
+                mutation_rate = np.loadtxt(mutation_rate)
+            else:
+                print(f"loading {os.path.join(config_path, mutation_rate)} ...")
+                mutation_rate = np.loadtxt(os.path.join(config_path, mutation_rate))
+        elif mutation_rate[0].isdigit():
             mutation_rate = float(mutation_rate)
-    effective_size = config.get(sim, "effective_population_size")
-    if effective_size:
-        effective_size = int(effective_size)
-    assert mutation_rate or effective_size, f"require either mutation rate or effective size"
+        else:
+            raise ValueError("must provide mutation rate")
 
     # initialize section
     init = "initialize"
     sample_sizes = list(map(int, config.get(init, "sample_sizes").split(",")))
     initial_sizes = list(map(int, config.get(init, "initial_sizes").split(",")))
-    growth_rate = list(map(float, config.get(init, "growth_rates").split(",")))
     gene_conversion = list(map(float, config.get(init, "gene_conversion").split(",")))
     mig_file = config.get(init, "migration_matrix")
     if mig_file:
@@ -188,30 +204,6 @@ def main():
             migration_matrix = [val for sublist in mig_list for val in sublist]
     else:
         migration_matrix = ''
-
-    # parameters section
-    par = "parameters"
-    theta_file = config.get(par, "theta_distribution")
-    if theta_file:
-        if os.path.exists(theta_file):
-            theta_array = np.loadtxt(theta_file)
-        else:
-            theta_array = np.loadtxt(os.path.join(config_path, theta_file))
-    else:
-        theta_array = theta
-    assert theta_array.any() or theta, f"require either theta option or file"
-    rho_file = config.get(par, "rho_distribution")
-    if rho_file:
-        if os.path.exists(rho_file):
-            rho_array = np.loadtxt(rho_file)
-        else:
-            rho_array = np.loadtxt(os.path.join(config_path, rho_file))
-    else:
-        rho_array = rho
-    if rho_array.any() or rho or rho_mu or recomb_rate:
-        pass
-    else:
-        print("recombination or rho not given, setting to 0")
 
     # selection section
     sel_dict = {}
@@ -253,6 +245,7 @@ def main():
                 else:
                     sel_dict[key] = int(sel_dict[key])
         sel_dict["hide"] = hide
+
     elif config.has_section("background_selection"):
         assert "msbgs" in ms_path, "bgsms needed for background selection"
         sel = "background_selection"
@@ -269,48 +262,41 @@ def main():
                     "region_def": region}
 
     # =========================================================================
-    #  Set Path and File variable
+    #  Build model dictionary
     # =========================================================================
-    model_dir = os.path.abspath(model_file)
-    out_path = os.path.split(model_dir)[0]
-    sim_path = os.path.join(out_path, f"{outfile}.{sim_number}.sims.out")
-
-    # build model dictionary
     model_dict = {"contig_length": contig_len,
+                  "eff_size": effective_size,
                   "recombination_rate": recomb_rate,
                   "mutation_rate": mutation_rate,
                   "sampleSize": sample_sizes,
                   "initialSize": initial_sizes,
-                  "growthRate": growth_rate,
                   "gene_conversion": gene_conversion,
                   "migMat": migration_matrix,
                   "loci": num_loci,
-                  "eff_size": effective_size,
                   "ploidy": ploidy,
-                  "rho_mu": rho_mu,
-                  "theta": theta_array,
-                  "rho": rho_array,
                   "sel_dict": sel_dict
                   }
     # =========================================================================
     #  Main executions
     # =========================================================================
-    #
     # parses the model file and draw all parameters
     demo_df, param_df = parse_model(model_file, sim_number)
 
-    priors_outfile = f"{sim_path}.priors"
-    write_priors(param_df, priors_outfile)
-    param_df.to_csv(f"{outfile}.param_df.csv")
-    if os.path.exists(priors_df.exists):
-        param_df = pd.read_csv(priors_df)
+    if priors_df:
+        if os.path.exists(priors_df):
+            param_df = pd.read_csv(priors_df)
+    else:
+        # write priors
+        priors_outfile = f"{sim_path}.priors"
+        write_priors(param_df, priors_outfile)
+        param_df.to_csv(f"{outfile}.param_df.csv")
 
     if "discoal" in ms_path:
         simulate_discoal(model_dict, demo_df, param_df, ms_path, sim_path, sim_number, outfile)
     elif "msbgs" in ms_path:
         simulate_msbgs(model_dict, demo_df, param_df, ms_path, sim_path, sim_number, outfile)
     elif "msprime" in ms_path:
-        simulate_msprime(model_dict, demo_df, param_df, ms_path, sim_path, sim_number, outfile)
+        simulate_msprime(model_dict, demo_df, param_df, sim_path, sim_number, outfile)
 
 
 if __name__ == "__main__":

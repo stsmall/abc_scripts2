@@ -133,7 +133,7 @@ def parse_model(in_file, size):
                         event_dt["time"].append(int(y_lin[0]))
                         event_dt["event"].append(y_lin[1])
                         event_dt["pop"].append(list(y_lin[2]))
-                        event_dt["value"].append(map(float, y_lin[3:]))
+                        event_dt["value"].append(map(int, y_lin[3:]))
 
     event_df = pd.DataFrame(event_dt, index=range(len(event_dt["time"])))
     # sort and draw tbi events
