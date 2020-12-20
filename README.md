@@ -3,7 +3,8 @@ Refactoring of abc_scripts.
 My goal is to build a customizable set of scripts to allow demographic inference under ABC. Given some of the known affects of linked selection (BGS and Positive) on patterns of polymorphism, I had added the msbgs program. I have also added a model of sequencing error (Jay et al. 2019) and the option to use the MMC in msprime.
 
 **TODO**
-* add support for SLiM and pySlim
+* add support for SLiM and pySlim. 
+* option to use MMC, beta or dirac in msprime  
 
 ## NEW in sims: 
 1. msprime as default
@@ -44,11 +45,10 @@ My goal is to build a customizable set of scripts to allow demographic inference
 `run_stats.py obs -cfg examples/stats_example.cfg --file example.vcf --pops example.meta.csv`  
 
 **perform analyses**  
-[abcrf](https://cran.r-project.org/web/packages/abcrf/index.html) (for importance rankings on parameter inference)       
-[abc](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf) (for parameter inference)   
+[abcrf](https://cran.r-project.org/web/packages/abcrf/index.html) (for importance rankings on parameter inference and inference)       
+[abc](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf) (for parameter inference)  
 
 ### notes on multiple merger coalescence (MMC) and deterministic wright-fisher model (dtwf)
-(TODO:option to use MMC, beta or dirac)  
 [MMC primer](https://pubmed.ncbi.nlm.nih.gov/24750385/)  
 [MMC-ABC](https://pubmed.ncbi.nlm.nih.gov/30651284/)  
 [MMC Selection](https://pubmed.ncbi.nlm.nih.gov/32396636/)  
