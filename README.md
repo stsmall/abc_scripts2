@@ -33,8 +33,8 @@ My goal is to build a customizable set of scripts to allow demographic inference
 **make sims**  
 run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 50000 --out msp_test --dryrun  
 run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 50000 --out msp_test --stats_cfg examples/stats.example.cfg  
-python run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out discoal_test --ms discoal  
-python run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msbgs_test --ms msbgs  
+run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out discoal_test --ms discoal  
+run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msbgs_test --ms msbgs  
 
 **get sim stats**  
 run_stats.py sims -cfg examples/stats_example.cfg --file discoal.sims.out --format ms  
