@@ -52,4 +52,5 @@ run_stats.py obs -cfg examples/stats_example.cfg --file example.vcf --pops examp
 [MMC primer](https://pubmed.ncbi.nlm.nih.gov/24750385/)  
 [MMC-ABC](https://pubmed.ncbi.nlm.nih.gov/30651284/)  
 [MMC Selection](https://pubmed.ncbi.nlm.nih.gov/32396636/)  
+[Wright-Fisher in msprime](https://www.biorxiv.org/content/10.1101/674440v1)
 
