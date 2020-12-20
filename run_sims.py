@@ -34,19 +34,8 @@ from sim_discoal import simulate_discoal
 from sim_msbgs import simulate_msbgs
 from sim_msprime import simulate_msprime
 
-import logging
-from datetime import datetime
-# =========================================================================
-#  Globals
-# =========================================================================
-now = datetime.now()
-dt_string = now.strftime("%d_%m_%Y.%H_%M_%S")
-logout = f"{dt_string}.log"
-logging.basicConfig(filename=logout, filemode='w', encoding='utf-8', level=logging.DEBUG)
-# =========================================================================
 
-
-def write_priors(param_df, outfile):
+def write_params(param_df, outfile, sim_number, dryrun):
     """Write priors to file.
 
     Parameters
@@ -62,41 +51,20 @@ def write_priors(param_df, outfile):
         DESCRIPTION.
 
     """
-    if eventkey_dict:
-        header_list = []
-        for event in eventkey_dict.keys():
-            for i, eve in enumerate(eventkey_dict[event]):
-                if "tm" in event:
-                    pop1 = event[-2]
-                    pop2 = event[-1]
-                    header_list.append(f"time_ev_{pop1}-{pop2}\tev_prop")
-                elif "es" in event:
-                    pop1 = event[-3]
-                    pop2 = event[-2]
-                    pop3 = event[-1]
-                    header_list.append(f"time_es_{pop1}-{pop2}-{pop3}\tes_prop")
-                elif "ej" in event:
-                    pop1 = event[-2]
-                    pop2 = event[-1]
-                    header_list.append(f"time_ej_{pop1}-{pop2}")
-                elif "Ne" in event:
-                    pop1 = event[-1]
-                    header_list.append(f"Ne_time_{pop1}_{i}\tNe_size_{pop1}_{i}\tNe_grow_{pop1}_{i}")
-        return("\t".join(header_list))
-    else:
-        params_list = list(params_dict.keys())
-        params_list.sort(key=lambda x: int(x[3:]))
-        par_list = []
-        for event in params_list:
-            for params in params_dict[event]:
-                if type(params) is list:
-                    for param in params:
-                        par_list.append(param)
-                else:
-                    par_list.append(params)
-            priors_list = map(str, par_list)
-        priors_str = "\t".join(priors_list)
-        return priors_str
+    headers = [f"{ep.event}_{''.join(ep.pops)}" for ep in param_df.itertuples()]
+    iterables = [headers, ["time", "value"]]
+    m_ix = pd.MultiIndex.from_product(iterables, names=['tbi', 'params'])
+    param_ls = []
+    for tbi in param_df.itertuples():
+        param_ls.append(tbi.time)
+        param_ls.append(tbi.value)
+    df = pd.DataFrame(list(zip(*param_ls)), index=range(sim_number), columns=m_ix)
+    # to access multi_index: e.g., df.loc[0]["Ne_1"]["value"]
+    df.to_csv(f"{outfile}.priors.out")
+
+    if dryrun:
+        pass
+        #plot using seaborn as sns
 
 
 def parse_args(args_in):
@@ -119,6 +87,10 @@ def parse_args(args_in):
     parser.add_argument("--set_priors", type=str,
                         help="provide a list of priors to be reused will overide"
                         " all other parameters")
+    parser.add_argument("--nprocs", type=int, default=1,
+                        help="processors for MP")
+    parser.add_argument("--dryrun", action="store_true",
+                        help="run debugger and plot priors")
     return(parser.parse_args(args_in))
 
 
@@ -135,6 +107,8 @@ def main():
     outfile = args.out
     ploidy = args.ploidy
     priors_df = args.set_priors
+    nprocs = args.nprocs
+    dry_run = args.dryrun
 
     model_dir = os.path.abspath(model_file)
     out_path = os.path.split(model_dir)[0]
@@ -193,18 +167,17 @@ def main():
     # initialize section
     init = "initialize"
     sample_sizes = list(map(int, config.get(init, "sample_sizes").split(",")))
+    npops = len(sample_sizes)
     initial_sizes = list(map(int, config.get(init, "initial_sizes").split(",")))
     gene_conversion = list(map(float, config.get(init, "gene_conversion").split(",")))
     mig_file = config.get(init, "migration_matrix")
     if mig_file:
         migration_matrix = np.genfromtxt(mig_file, delimiter=",")
-        if np.sum(migration_matrix) > 0:
-            assert len(sample_sizes) == migration_matrix.shape[0], "require an entry for each population in mig matrix"
-            mig_list = migration_matrix.tolist()
-            migration_matrix = [val for sublist in mig_list for val in sublist]
+        assert len(sample_sizes) == migration_matrix.shape[0], "require an entry for each population in mig matrix"
+        mig_list = migration_matrix.tolist()
+        migration_matrix = [val for sublist in mig_list for val in sublist]
     else:
-        migration_matrix = ''
-
+        migration_matrix = np.zeros([npops, npops])
     # selection section
     sel_dict = {}
     if config.has_section("positive_selection"):
@@ -271,7 +244,7 @@ def main():
                   "sampleSize": sample_sizes,
                   "initialSize": initial_sizes,
                   "gene_conversion": gene_conversion,
-                  "migMat": migration_matrix,
+                  "migmat": migration_matrix,
                   "loci": num_loci,
                   "ploidy": ploidy,
                   "sel_dict": sel_dict
@@ -281,22 +254,20 @@ def main():
     # =========================================================================
     # parses the model file and draw all parameters
     demo_df, param_df = parse_model(model_file, sim_number)
-
     if priors_df:
         if os.path.exists(priors_df):
             param_df = pd.read_csv(priors_df)
     else:
         # write priors
-        priors_outfile = f"{sim_path}.priors"
-        write_priors(param_df, priors_outfile)
-        param_df.to_csv(f"{outfile}.param_df.csv")
+        priors_outfile = f"{sim_path}"
+        write_params(param_df, priors_outfile, sim_number, dry_run)
 
     if "discoal" in ms_path:
         simulate_discoal(model_dict, demo_df, param_df, ms_path, sim_path, sim_number, outfile)
     elif "msbgs" in ms_path:
         simulate_msbgs(model_dict, demo_df, param_df, ms_path, sim_path, sim_number, outfile)
     elif "msprime" in ms_path:
-        simulate_msprime(model_dict, demo_df, param_df, sim_path, sim_number, outfile)
+        simulate_msprime(model_dict, demo_df, param_df, sim_number, f"{sim_path}{outfile}", nprocs, dry_run)
 
 
 if __name__ == "__main__":

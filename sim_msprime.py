@@ -6,102 +6,41 @@ Created on Wed Dec 16 20:32:28 2020
 
 """
 import msprime as msp
-import tskit as tsk
 import numpy as np
 import pandas as pd
-import tqdm
+import multiprocessing
+
+# =========================================================================
+# change this to allow trees to be written to file using tree.dump()
+# WARNING! this will produce a lot of files! == sim_number
+run_stats = False
+# =========================================================================
 
 
-def sim_syntax(model_dict):
-    """Create parameters for specific model.
+def pop_config():
+    """Set pop config for msprime.
 
     Parameters
     ----------
-    model_dict : TYPE
-        DESCRIPTION.
-    ms_path : str
-        path to simulator
+    model_dt : Dict
+        global declared dict of model values
+    ploidy : int
+        ploidy of samples
     Returns
     -------
-    ms_dict : Dict
-        BOO
+    pops_ls : List
+        List containing msprime PopConfig objects
 
     """
-    ms_dict = {}
-    # populations
-    sample_sizes = model_dict["sampleSize"]
-    npops = len(sample_sizes)
-    ploidy = model_dict["ploidy"]
-    locus_len = model_dict["contig_length"]
-    effective_size = model_dict["eff_size"] * ploidy
-
-    # calc theta
-    mut_rate = model_dict["mutation_rate"]
-    if type(mut_rate) == list:
-        if len(mut_rate) == 2:
-            low, high = mut_rate
-            mu = np.random.uniform(low, high)
-        else:
-            mu = np.random.choice(mut_rate)
-    else:
-        mu = mut_rate
-    theta_loc = 4 * effective_size * mu * locus_len
-
-    # calc rho rate
-    rec_rate = model_dict["recombination_rate"]
-    if type(rec_rate) == list:
-        if len(rec_rate) == 2:
-            low, high = mut_rate
-            rho = np.random.uniform(low, high)
-        else:
-            rho = np.random.choice(rec_rate)
-    elif rec_rate is None:
-        rho = 0
-    else:
-        rho = rec_rate
-    rho_loc = 4 * effective_size * rho * locus_len
-
-    # gene conversion
-    gen_conversion = model_dict["gene_conversion"][0]
-    if gen_conversion > 0:
-        tract = model_dict["gene_conversion"][1]
-        gen_cov = f"-gr {gen_conversion / rec_rate} {tract}"
-    else:
-        gen_cov = ""
-
-    # subops
-    init_sizes = [size * ploidy for size in model_dict["initialSize"]]
-    # TODO: growth rate
-    grow_rate = model_dict["growthRate"]
-    mig_mat = model_dict["migMat"]
-    subpops = f"-p {npops} {' '.join(map(str, sample_sizes))}"
-    ne_sub_pops = [f"-en 0 {i} {pop_ne/effective_size}" for i, pop_ne in enumerate(init_sizes)]
-    ne_subpop = " ".join(ne_sub_pops)
-    grow_subpop = []
-    if mig_mat:
-        mig = []
-        mig_matrix = zip(*mig_mat)
-        for p, pop_m in enumerate(mig_matrix):
-            for i, m in pop_m:
-                if p != i and m > 0:
-                    mig.append(f"-m {p} {i} {4*effective_size*m}")
-    else:
-        mig_matrix = ""
-
-    ms_dict = {"npops": npops,
-               "subpop": subpops,
-               "theta_loc": theta_loc,
-               "scaled_Ne": effective_size,
-               "rho_loc": rho_loc,
-               "gen_cov": gen_cov,
-               "ne_subpop": ne_subpop,
-               "grow_subpop": grow_subpop,
-               "mig_matrix": mig_matrix}
-
-    return ms_dict
+    sample_sizes = model_dt["sampleSize"]
+    init_sizes = [size * ploidy for size in model_dt["initialSize"]]
+    pops_ls = []
+    for ss, init in zip(sample_sizes, init_sizes):
+        pops_ls.append(msp.PopulationConfiguration(sample_size=ss, initial_size=init))
+    return pops_ls
 
 
-def model_msprime(model_dict, ms_dict, demo_df):
+def demo_config(params):
     """Create model with no migration for discoal.
 
     Parameters
@@ -119,152 +58,220 @@ def model_msprime(model_dict, ms_dict, demo_df):
         DESCRIPTION.
 
     """
-    scaled_Ne = ms_dict["scaled_Ne"]
-    init_size = list(model_dict["initialSize"])
+    demo_param_df = pd.concat([demo_df, pd.DataFrame(params)])
+    demo_param_df_srt = demo_param_df.set_index("time")
+    demo_param_df_srt.sort_index(inplace=True)
     dem_list = []
     sourcelist = []
 
-    demo_df_srt = demo_df.set_index("time")
-    demo_df_srt.sort_index(inplace=True)
     # "time": float, "event": [Ne, ej, tes, tm], "pop": [0-9], "value": float
-    for time, row in demo_df_srt.iterrows():
-        new_time = time / (4*scaled_Ne)  # 4N0gens
+    for time, row in demo_param_df_srt.iterrows():
         event = row["event"]
+        if time > hybrid_switch_over:  # add hybrid switch-over here
+            dem_list.append(msp.SimulationModelChange(time=time, model=hybrid_model))
         if "Ne" in event:
-            pop = int(row["pop"])
-            size = row["value"][0]
-            grow = row["value"][1]
-            init_size[pop] = size
-            if pop not in sourcelist:
-                new_Ne = size / scaled_Ne
-                if grow > 0:
-                    dem_list.append(f"-en {new_time} {pop} {new_Ne} {grow}")
+            [pop1] = row["pops"]
+            pop1 = int(pop1)
+            if type(row["value"]) is list:
+                if len(row["value"]) > 1:
+                    low = row["value"][0]
+                    high = row["value"][1]
+                    size = np.random.randint(low, high)
                 else:
-                    dem_list.append(f"-en {new_time} {pop} {new_Ne}")
+                    size = row["value"][0]
+            else:
+                size = row["value"]
+            dem_list.append(msp.PopulationParametersChange(time=time, initial_size=size, population=pop1, growth_rate=0))
         elif "ej" in event:
-            pop1, pop2 = row["pop"]
+            pop1, pop2 = row["pops"]
             pop1 = int(pop1)
             pop2 = int(pop2)
             # pop1 -> pop2
             if pop1 not in sourcelist:
-                dem_list.append(f"-ed {new_time} {pop1} {pop2}")
+                dem_list.append(msp.MassMigration(time=time, source=pop1, destination=pop2, proportion=1.0))
+                dem_list.append(msp.MigrationRateChange(time, 0, (pop1, pop2)))
                 sourcelist.append(pop1)
         elif "es" in event:
-            # es_343; daughter, parent1, parent2. can be same
-            pop1, pop2, pop3 = row["pop"]
+            # es34
+            pop1, pop2 = row["pops"]
+            pop1 = int(pop1)
+            pop2 = int(pop2)
+            if not any(i in sourcelist for i in [pop1, pop2]):
+                prop = row["value"]
+                dem_list.append(msp.MassMigration(time=time, source=pop2, destination=pop1, proportion=prop))
+        elif "ea" in event:
+            # ea345: daughter, parent1, parent2
+            pop1, pop2, pop3 = row["pops"]
             pop1 = int(pop1)
             pop2 = int(pop2)
             pop3 = int(pop3)
             if not any(i in sourcelist for i in [pop1, pop2, pop3]):
-                prop = 1 - row["value"]
-                dem_list.append(f"-ea {new_time} {pop1} {pop2} {pop3} {prop}")
+                prop = row["value"]
+                dem_list.append(msp.MassMigration(time=time, source=pop2, destination=pop1, proportion=prop))
+                dem_list.append(msp.MassMigration(time=time, source=pop3, destination=pop1, proportion=prop))
         elif "m" in event:
-            pop1, pop2 = row["pop"]
+            pop1, pop2 = row["pops"]
             pop1 = int(pop1)
             pop2 = int(pop2)
-            mig1 = row["value"]*4*scaled_Ne
-            mig2 = row["value"]*4*scaled_Ne
+            mig = row["value"]
             if not any(i in sourcelist for i in [pop1, pop2]):
                 if "ms" in event:  # set as symmetrical
-                    dem_list.append(f"-m {new_time} {pop1} {pop2} {mig1}")
-                    dem_list.append(f"-m {new_time} {pop2} {pop1} {mig2}")
+                    dem_list.append(msp.MigrationRateChange(time=time, rate=mig, matrix_index=(pop1, pop2)))
+                    dem_list.append(msp.MigrationRateChange(time=time, rate=mig, matrix_index=(pop2, pop1)))
                 elif "ma" in event:
-                    dem_list.append(f"-m {new_time} {pop1} {pop2} {mig1}")
-
+                    dem_list.append(msp.MigrationRateChange(time=time, rate=mig, matrix_index=(pop1, pop2)))
     return dem_list
 
 
-def command_line(model_dict, demo_df, ms_path, seed):
-    """Create a single instance of a call to simulator.
+def run_simulation(param_df):
+    """Run msprime simulation.
 
     Parameters
     ----------
-    model_dict: Dict
-        contains info from config file
-    demo_dict: Dict
-        dict of pop sizes and times
-    par_dict: Dict
-        generator of distributions
-    event_dict: List
-        list of demographic events, column 2 in model
-    ms_path: str
-        location of ms exe
-
-    Returns
-    -------
-    mscmd: str
-        full call to ms/msmove
-    params: list
-        list of random parameters for that simulation
-
-    """
-    # TODO: set seed to iteration to run in parallel
-    seed_ls = [seed, np.random.randint(1, 2**32-1, 1), np.random.randint(1, 2**32-1, 1)]
-    # rescale
-    ms_dict = sim_syntax(model_dict)
-
-    # build demographic command line
-    dem_events = model_msprime(model_dict, ms_dict, demo_df)
-
-    # gather command line args
-    ms_params = {
-                'ms': ms_path,
-                'nhaps': sum(model_dict["sampleSize"]),
-                'loci': model_dict["loci"],
-                'theta': ms_dict["theta_loc"],
-                'rho': ms_dict['rho_loc'],
-                'gen_cov': ms_dict['gen_cov'],
-                'basepairs': model_dict["contig_length"],
-                'subpops': ms_dict["subpop"],
-                'ne_subpop': ms_dict["ne_subpop"],
-                'growth_subpop': ms_dict["grow_subpop"],
-                'migmat': ms_dict["mig_matrix"],
-                'demo': " ".join(dem_events)
-                }
-
-    ms_base = ("{ms} {nhaps} {loci} {basepairs} -t {theta} -r {rho} "
-               "{gen_cov} {subpops} {ne_subpop} {demo} {sel}")
-    mscmd = ms_base.format(**ms_params)
-    ms_cmd = " ".join(mscmd.split())
-    return ms_cmd
-
-
-def simulate_msprime(model_dict, demo_df, param_df, sim_path, sim_number, outfile):
-    """Main simulate code for discoal.
-
-    Parameters
-    ----------
-    model_dict : TYPE
-        DESCRIPTION.
-    demo_df : TYPE
-        DESCRIPTION.
     param_df : TYPE
         DESCRIPTION.
-    ms_path : TYPE
-        DESCRIPTION.
-    sim_path : TYPE
-        DESCRIPTION.
-    sim_number : TYPE
-        DESCRIPTION.
-    outfile : TYPE
-        DESCRIPTION.
+    check_demo : TYPE, optional
+        DESCRIPTION. The default is True.
+    run_stats : TYPE, optional
+        DESCRIPTION. The default is False.
 
     Returns
     -------
-    None.
+    ts : TYPE
+        DESCRIPTION.
 
     """
-    event = param_df.event.values
-    pop = param_df.pop.values
-    time_arr = param_df.time.values
-    value_arr = param_df.value.values
-    param_gen = ({"time": time_arr[i], "event":event, "pop":pop, "value": value_arr[i]} for i in sim_number)
-    pbar = tqdm.tqdm(total=sim_number, desc="Sim Number", unit='sim')
-    with open(sim_path, 'w') as sims_outfile:
-        # use MP pool here
-        for params in param_gen:
-            pbar.update(1)
-            demo_df = pd.concat([demo_df, pd.DataFrame(params)])
-            ts = command_line(model_dict, demo_df)
-            sims_outfile.write(ts)
-    pbar.close()
+    # rescale
+    pops = pop_config()
+
+    # build demographic command line
+    demo_events = demo_config(param_df)
+    # check demo
+    if dry_run:
+        checkDemo(pops, demo_events)
+    else:
+        tree = msp.simulate(
+                          Ne=np.random.choice(scaled_Ne),
+                          recombination_rate=np.random.choice(rec),
+                          mutation_rate=np.random.choice(mu),
+                          num_replicates=model_dt["loci"],
+                          length=model_dt["contig_length"],
+                          population_configurations=pops,
+                          migration_matrix=model_dt["migmat"],
+                          demographic_events=demo_events,
+                          model=initial_model)
+        if run_stats:
+            pass
+            # pipe directly to run_stats.py sims --config FOO --file None --format msprime
+            # this will run as MP with the sims, should preload the config as dict or a global
+            # so I dont have to keep passing it. Then need a different command line pass-by
+            # to prevent it looking for all the options
+        else:
+            for i, ts in enumerate(tree):
+                ts.dump(f"{outfile_tree}.{i}.tree")
+
+
+def checkDemo(pops, demo_events):
+    """Print out demography for debugging."""
+    dd = msp.DemographyDebugger(
+                      Ne=np.random.choice(scaled_Ne),
+                      population_configurations=pops,
+                      migration_matrix=model_dt["migmat"],
+                      demographic_events=demo_events,
+                      model=initial_model)
+    dd.print_history()
+
+
+def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number, outfile, nprocs, dryrun):
+    """Main code for simulating msprime
+
+    Parameters
+    ----------
+    model_dict : Dict
+        Dict holding information on model specs from config file
+    demo_dataframe : DataFrame
+        Dataframe with info from model file
+    param_df : DataFrame
+        Dataframe that holds tbi values and draws
+    sim_path : str
+        file path
+    sim_number : int
+        how man independent sims to run
+    outfile : str
+        file name for output
+    nprocs : int
+        how many processors to run with MP
+
+    Returns
+    -------
+    Writes a trees file from mpsrime to a file
+
+    """
+    # =========================================================================
+    #  Globals
+    # =========================================================================
+    global demo_df
+    global model_dt
+    global nhaps
+    global mu
+    global rec
+    global ploidy
+    global scaled_Ne
+    global initial_model
+    global hybrid_model
+    global hybrid_switch_over
+    global outfile_tree
+    global dry_run
+    # =========================================================================
+    # declare globals
+    dry_run = dryrun
+    initial_model = "hudson"
+    hybrid_model = "hudson"  # dtwf, smc, smc_prime
+    hybrid_switch_over = 500
+    outfile_tree = outfile
+    model_dt = model_dict
+    demo_df = demo_dataframe
+    nhaps = sum(model_dt["sampleSize"])
+    # set mutation rate
+    mut_rate = model_dt["mutation_rate"]
+    if type(mut_rate) == list:
+        if len(mut_rate) == 2:
+            low, high = mut_rate
+            mu = np.random.uniform(low, high, sim_number)
+    else:
+        mu = [mut_rate]
+    # set recombination rate
+    rec_rate = model_dt["recombination_rate"]
+    if type(rec_rate) == list:
+        if len(rec_rate) == 2:
+            low, high = mut_rate
+            rec = np.random.uniform(low, high, sim_number)
+    else:
+        rec = [rec_rate]
+    # set Ne
+    ploidy = model_dt["ploidy"]
+    effective_size = model_dt["eff_size"]
+    if type(effective_size) == list:
+        low, high = effective_size
+        scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
+    else:
+        scaled_Ne = effective_size * ploidy
+
+    # set up generator fx
+    event = param_df["event"].values
+    pops = param_df["pops"].values
+    time_arr = list(zip(*param_df["time"].values))
+    value_arr = list(zip(*param_df["value"].values))
+    param_gen = ({"time": time_arr[i], "event":event, "pops":pops, "value": value_arr[i]} for i in range(sim_number))
+
+    # check nprocs
+    if nprocs > multiprocessing.cpu_count():  # check that there are not more requested than available
+        print("not {nprocs} processors available, setting to {multiprocessing.cpu_count()}")
+        nprocs = multiprocessing.cpu_count()
+    if dry_run:
+        for param in param_gen:
+            run_simulation(param)
+            break
+    else:
+        with multiprocessing.Pool(processes=nprocs) as pool:
+            pool.map(run_simulation, param_gen)

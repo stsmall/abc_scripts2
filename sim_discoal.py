@@ -7,10 +7,10 @@ Created on Wed Dec 16 20:32:28 2020
 """
 import numpy as np
 import pandas as pd
-from tqdm import trange
+import tqdm
 
 
-def selection_parse(model_dict, ms_dict):
+def selection_parse(model_dt, ms_dt):
     """Parse selection dict for discoal.
 
     Parameters
@@ -23,13 +23,13 @@ def selection_parse(model_dict, ms_dict):
     None.
 
     """
-    scaled_Ne = ms_dict["scaled_Ne"]
-    rho_loc = ms_dict["rho_loc"],
+    ne0 = ms_dt["Ne0"]
+    rho_loc = ms_dt["rho_loc"],
     # sel params
-    sel_dict = model_dict["sel_dict"]
+    sel_dict = model_dt["sel_dict"]
     pop0_Ne = sel_dict["pop0_Ne"]
     if not pop0_Ne:
-        pop0_Ne = scaled_Ne
+        pop0_Ne = ne0
     sweep_Ne = sel_dict["sweep_Ne"]
     alpha = sel_dict["alpha"]
     freq = sel_dict["freq"]
@@ -45,11 +45,11 @@ def selection_parse(model_dict, ms_dict):
         sel_list.append(f"-N {sweep_Ne}")
     # sweep time
     if type(sweep_stop) == list:
-        ws_l = sweep_stop[0]/(4 * scaled_Ne)
-        ws_h = sweep_stop[1]/(4 * scaled_Ne)
+        ws_l = sweep_stop[0]/(4 * ne0)
+        ws_h = sweep_stop[1]/(4 * ne0)
         sel_list.append(f"-ws 0 -Pu {ws_l} {ws_h}")
     else:
-        tau = sweep_stop/(4 * scaled_Ne)
+        tau = sweep_stop/(4 * ne0)
         sel_list.append(f"-ws {tau}")
     # sel coeff
     if type(alpha) == list:
@@ -63,7 +63,7 @@ def selection_parse(model_dict, ms_dict):
     left_rho = sel_dict["left_rho"]
     if left_rho[1] > 0:
         time, scale = left_rho
-        sel_list.append(f"-ls {time/(4*scaled_Ne)} {scale*rho_loc}")
+        sel_list.append(f"-ls {time/(4*ne0)} {scale*rho_loc}")
     # recurrent to the left
     rrh_left = sel_dict["rrh_left"]
     if rrh_left > 0:
@@ -122,7 +122,7 @@ def selection_parse(model_dict, ms_dict):
     return sel_list
 
 
-def sim_syntax(model_dict):
+def sim_syntax(model_dt):
     """Create parameters for specific model.
 
     Parameters
@@ -137,85 +137,52 @@ def sim_syntax(model_dict):
         BOO
 
     """
-    ms_dict = {}
-    # populations
-    sample_sizes = model_dict["sampleSize"]
-    npops = len(sample_sizes)
-    ploidy = model_dict["ploidy"]
-    locus_len = model_dict["contig_length"]
-
-    # get Ne
-    effective_size = model_dict["eff_size"]
-    if type(effective_size) == list:
-        low, high = effective_size
-        scaled_Ne = np.random.randint(low, high)
-    else:
-        scaled_Ne = effective_size
-    scaled_Ne = scaled_Ne * ploidy
-
+    ms_dt = {}
+    locus_len = model_dt["contig_length"]
+    ne0 = np.random.choice(scaled_Ne)
+    mu_t = np.random.choice(mu)
+    rec_t = np.random.choice(rec)
     # calc theta
-    mut_rate = model_dict["mutation_rate"]
-    if type(mut_rate) == list:
-        if len(mut_rate) == 2:
-            low, high = mut_rate
-            mu = np.random.uniform(low, high)
-        else:
-            mu = np.random.choice(mut_rate)
-    else:
-        mu = mut_rate
-    theta_loc = 4 * scaled_Ne * mu * locus_len
-
+    theta_loc = 4 * ne0 * mu_t * locus_len
     # calc rho rate
-    rec_rate = model_dict["recombination_rate"]
-    if type(rec_rate) == list:
-        if len(rec_rate) == 2:
-            low, high = mut_rate
-            rho = np.random.uniform(low, high)
-        else:
-            rho = np.random.choice(rec_rate)
-    elif rec_rate is None:
-        rho = 0
-    else:
-        rho = rec_rate
-    rho_loc = 4 * scaled_Ne * rho * locus_len
+    rho_loc = 4 * ne0 * rec_t * locus_len
 
     # gene conversion
-    gen_conversion = model_dict["gene_conversion"][0]
+    gen_conversion = model_dt["gene_conversion"][0]
     if gen_conversion > 0:
-        tract = model_dict["gene_conversion"][1]
-        gen_cov = f"-gr {gen_conversion / rec_rate} {tract}"
+        tract = model_dt["gene_conversion"][1]
+        gen_cov = f"-gr {gen_conversion / rec_t} {tract}"
     else:
         gen_cov = ""
 
     # subops
-    init_sizes = [size * ploidy for size in model_dict["initialSize"]]
-    mig_mat = model_dict["migMat"]
+    mig_mat = model_dt["migmat"]
     subpops = f"-p {npops} {' '.join(map(str, sample_sizes))}"
-    ne_sub_pops = [f"-en 0 {i} {pop_ne/scaled_Ne}" for i, pop_ne in enumerate(init_sizes)]
+    ne_sub_pops = [f"-en 0 {i} {pop_ne/ne0}" for i, pop_ne in enumerate(init_sizes)]
     ne_subpop = " ".join(ne_sub_pops)
-    if mig_mat:
+    if np.sum(mig_mat) > 0:
         mig = []
         mig_matrix = zip(*mig_mat)
         for p, pop_m in enumerate(mig_matrix):
             for i, m in pop_m:
                 if p != i and m > 0:
-                    mig.append(f"-m {p} {i} {4*scaled_Ne*m}")
+                    mig.append(f"-m {p} {i} {4*ne0*m}")
     else:
         mig_matrix = ""
 
-    ms_dict = {"npops": npops,
-               "subpop": subpops,
-               "theta_loc": theta_loc,
-               "scaled_Ne": scaled_Ne,
-               "rho_loc": rho_loc,
-               "gen_cov": gen_cov,
-               "ne_subpop": ne_subpop,
-               "mig_matrix": mig_matrix}
+    ms_dt = {"npops": npops,
+             "subpop": subpops,
+             "theta_loc": theta_loc,
+             "Ne0": ne0,
+             "rho_loc": rho_loc,
+             "gen_cov": gen_cov,
+             "ne_subpop": ne_subpop,
+             "mig_matrix": mig_matrix}
 
-    return ms_dict
+    return ms_dt
 
 
-def model_discoal(model_dict, ms_dict, demo_df):
+def model_discoal(params, ne0):
     """Create model with no migration for discoal.
 
     Parameters
@@ -233,30 +200,32 @@ def model_discoal(model_dict, ms_dict, demo_df):
         DESCRIPTION.
 
     """
-    scaled_Ne = ms_dict["scaled_Ne"]
-    init_size = list(model_dict["initialSize"])
+    demo_param_df = pd.concat([demo_df, pd.DataFrame(params)])
+    demo_param_df_srt = demo_param_df.set_index("time")
+    demo_param_df_srt.sort_index(inplace=True)
     dem_list = []
     sourcelist = []
-
-    demo_df_srt = demo_df.set_index("time")
-    demo_df_srt.sort_index(inplace=True)
     # "time": float, "event": [Ne, ej, tes, tm], "pop": [0-9], "value": float
-    for time, row in demo_df_srt.iterrows():
-        new_time = time / (4*scaled_Ne)  # 4N0gens
+    for time, row in demo_param_df_srt.iterrows():
+        new_time = time / (4*ne0)  # 4N0gens
         event = row["event"]
         if "Ne" in event:
-            pop = int(row["pop"])
-            if len(row["value"]) > 1:
-                low, high = row["value"]
-                size = np.random.randint(low, high)
+            [pop1] = row["pops"]
+            pop1 = int(pop1)
+            if type(row["value"]) is list:
+                if len(row["value"]) > 1:
+                    low = row["value"][0]
+                    high = row["value"][1]
+                    size = np.random.randint(low, high)
+                else:
+                    size = row["value"][0]
             else:
-                size = row["value"][0]
-            init_size[pop] = size
-            if pop not in sourcelist:
-                new_Ne = size / scaled_Ne
-                dem_list.append(f"-en {new_time} {pop} {new_Ne}")
+                size = row["value"]
+            if pop1 not in sourcelist:
+                new_Ne = size / ne0
+                dem_list.append(f"-en {new_time} {pop1} {new_Ne}")
         elif "ej" in event:
-            pop1, pop2 = row["pop"]
+            pop1, pop2 = row["pops"]
             pop1 = int(pop1)
             pop2 = int(pop2)
             # pop1 -> pop2
@@ -264,22 +233,31 @@ def model_discoal(model_dict, ms_dict, demo_df):
                 dem_list.append(f"-ed {new_time} {pop1} {pop2}")
                 sourcelist.append(pop1)
         elif "es" in event:
-            # es_343; daughter, parent1, parent2. can be same
-            pop1, pop2, pop3 = row["pop"]
+            # es34 is read as es_343 in discoal: daughter, parent1, parent2
+            pop1, pop2 = row["pops"]
+            pop1 = int(pop1)
+            pop2 = int(pop2)
+            pop3 = pop1
+            if not any(i in sourcelist for i in [pop1, pop2]):
+                prop = row["value"]
+                dem_list.append(f"-ea {new_time} {pop1} {pop2} {pop3} {prop}")
+        elif "ea" in event:
+            # ea345: daughter, parent1, parent2
+            pop1, pop2, pop3 = row["pops"]
             pop1 = int(pop1)
             pop2 = int(pop2)
             pop3 = int(pop3)
             if not any(i in sourcelist for i in [pop1, pop2, pop3]):
-                prop = 1 - row["value"]
+                prop = row["value"]
                 dem_list.append(f"-ea {new_time} {pop1} {pop2} {pop3} {prop}")
         elif "m" in event:
-            pop1, pop2 = row["pop"]
+            pop1, pop2 = row["pops"]
             pop1 = int(pop1)
             pop2 = int(pop2)
-            mig1 = row["value"]*4*scaled_Ne
-            mig2 = row["value"]*4*scaled_Ne
+            mig1 = row["value"]*4*ne0
             if not any(i in sourcelist for i in [pop1, pop2]):
                 if "ms" in event:  # set as symmetrical
+                    mig2 = row["value"]*4*ne0
                     dem_list.append(f"-m {new_time} {pop1} {pop2} {mig1}")
                     dem_list.append(f"-m {new_time} {pop2} {pop1} {mig2}")
                 elif "ma" in event:
@@ -288,7 +266,7 @@ def model_discoal(model_dict, ms_dict, demo_df):
     return dem_list
 
 
-def command_line(model_dict, demo_df, ms_path, seed):
+def command_line(params):
     """Create a single instance of a call to simulator.
 
     Parameters
@@ -312,32 +290,30 @@ def command_line(model_dict, demo_df, ms_path, seed):
         list of random parameters for that simulation
 
     """
-    # TODO: set seed to iteration to run in parallel
-    seed_ls = [seed, np.random.randint(1, 2**32-1, 1), np.random.randint(1, 2**32-1, 1)]
     # rescale
-    ms_dict = sim_syntax(model_dict)
+    ms_dt = sim_syntax(model_dt)
 
     # build selection command line
-    if model_dict["sel_dict"]:
-        sel_list = selection_parse(model_dict, ms_dict)
+    if model_dt["sel_dict"]:
+        sel_list = selection_parse(model_dt, ms_dt)
     else:
         sel_list = ''
 
     # build demographic command line
-    dem_events = model_discoal(model_dict, ms_dict, demo_df)
+    dem_events = model_discoal(params, ms_dt["Ne0"])
 
     # gather command line args
     ms_params = {
-                'ms': ms_path,
-                'nhaps': sum(model_dict["sampleSize"]),
-                'loci': model_dict["loci"],
-                'theta': ms_dict["theta_loc"],
-                'rho': ms_dict['rho_loc'],
-                'gen_cov': ms_dict['gen_cov'],
-                'basepairs': model_dict["contig_length"],
-                'subpops': ms_dict["subpop"],
-                'ne_subpop': ms_dict["ne_subpop"],
-                'migmat': ms_dict["mig_matrix"],
+                'ms': ms_exe,
+                'nhaps': nhaps,
+                'loci': model_dt["loci"],
+                'theta': ms_dt["theta_loc"],
+                'rho': ms_dt['rho_loc'],
+                'gen_cov': ms_dt['gen_cov'],
+                'basepairs': model_dt["contig_length"],
+                'subpops': ms_dt["subpop"],
+                'ne_subpop': ms_dt["ne_subpop"],
+                'migmat': ms_dt["mig_matrix"],
                 'demo': " ".join(dem_events),
                 'sel': " ".join(sel_list)
                 }
@@ -349,7 +325,7 @@ def command_line(model_dict, demo_df, ms_path, seed):
     return ms_cmd
 
 
-def simulate_discoal(model_dict, demo_df, param_df, ms_path, sim_path, sim_number, outfile):
+def simulate_discoal(model_dict, demo_dataframe, param_df, ms_path, sim_path, sim_number, outfile):
     """Main simulate code for discoal.
 
     Parameters
@@ -374,16 +350,69 @@ def simulate_discoal(model_dict, demo_df, param_df, ms_path, sim_path, sim_numbe
     None.
 
     """
-    param_dt = {}
-    for tbi, row in param_df.iterrows():
-        param_dt[tbi] = list(zip(row["time"], row["value"]))
-    demo_df = pd.concat([demo_df, param_df])
+    # =========================================================================
+    #  Globals
+    # =========================================================================
+    global demo_df
+    global model_dt
+    global nhaps
+    global mu
+    global rec
+    global scaled_Ne
+    global initial_model
+    global hybrid_model
+    global outfile_tree
+    global ms_exe
+    global sample_sizes
+    global npops
+    global ploidy
+    global init_sizes
+    # =========================================================================
+    # declare globals
+    ms_exe = ms_path
+    model_dt = model_dict
+    demo_df = demo_dataframe
+    nhaps = sum(model_dt["sampleSize"])
+    sample_sizes = model_dt["sampleSize"]
+    npops = len(sample_sizes)
+    ploidy = model_dt["ploidy"]
+    init_sizes = [size * ploidy for size in model_dt["initialSize"]]
+    # set mutation rate
+    mut_rate = model_dt["mutation_rate"]
+    if type(mut_rate) == list:
+        if len(mut_rate) == 2:
+            low, high = mut_rate
+            mu = np.random.uniform(low, high, sim_number)
+    else:
+        mu = [mut_rate]
+    # set recombination rate
+    rec_rate = model_dt["recombination_rate"]
+    if type(rec_rate) == list:
+        if len(rec_rate) == 2:
+            low, high = mut_rate
+            rec = np.random.uniform(low, high, sim_number)
+    else:
+        rec = [rec_rate]
 
+    # set Ne
+    ploidy = model_dt["ploidy"]
+    effective_size = model_dt["eff_size"]
+    if type(effective_size) == list:
+        low, high = effective_size
+        scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
+    else:
+        scaled_Ne = effective_size * ploidy
+
+    # set up generator fx
+    event = param_df["event"].values
+    pops = param_df["pops"].values
+    time_arr = list(zip(*param_df["time"].values))
+    value_arr = list(zip(*param_df["value"].values))
+    param_gen = ({"time": time_arr[i], "event":event, "pops":pops, "value": value_arr[i]} for i in range(sim_number))
+    progressbar = tqdm.tqdm(total=sim_number, unit='sims')
     with open(sim_path, 'w') as sims_outfile:
-        for i in trange(sim_number):
-            for tbi in param_dt.keys():
-                ptime, pvalue = param_dt[tbi][i]
-                demo_df.loc[tbi]["time"] = ptime
-                demo_df.loc[tbi]["value"] = pvalue
-            mscmd = command_line(model_dict, demo_df, ms_path, i)
+        for param in param_gen:
+            progressbar.update(1)
+            mscmd = command_line(param)
             sims_outfile.write(f"{mscmd} >> {outfile}\n")
+    progressbar.close()

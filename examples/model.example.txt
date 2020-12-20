@@ -1,19 +1,25 @@
-#tbi : to be inferred
-# es time p1 p2 1-admx
-# tm time p1 p2 admx
-# ea time p1 p2 p1 admx ~discoal
-tbi0 tm 12 rUintL 200000 1500000 rUflt 0.1 0.9
-tbi1 tm 32 rUintL 200000 tbi2 rUflt 0.1 0.9
-tbi2 ej 34 rUintL 500000 tbi3
-tbi3 ej 45 rUintL 1000000 tbi4
-tbi4 ej 12 rUintL 1500000 tbi5
-tbi5 ej 25 rUintL 3870000 10000000
-tbi6 Ne 1 rC 0.0 0.0 rUintL 100000 1000000
-#conditions x < y
-#set tbi0 tbi5
-#pop1 demography
-3432 Ne 0 178924
-7801 Ne 0 178924
+# tbi: to be inferred. must be in order of occurence due to parsing of the tbi() in the values columns. TODO work on recursion algorithm.
+# distributions: runif, rlog_unif, runif_int, rnorm_int, rlog_norm_int, rbeta, rconstant. # for log, takes value converts to log draws param converts back.
+# demography keywords: 
+	# Ne: effective popsize. e.g., 'Ne 0 rconstant 0 0 rlog_unif_int 1000 10000' # Change Ne for pop0 at time 0 to a value drawn from the interval 1000,10000
+	# ej: split time. e.g., 'ej 34 rlog_unif_int 100 1000' # join population 3 into population 4 between generations 100,1000
+	# esa: admixture, daughter, parent1, parent2 (see discoal documentation for ea, different than es in msdoc). daughter is made of proportion from parent1 and 1-proportion of parent2. See this as daughter splits back in time to parent1 and parent2 population. In most cases we allow daughter == parent2, thus mimicing the behavior of es.
+	# ms: migration symmetrical. e.g., 'm 34 rconstant 0 0 runif .1 .9' # change migration rate from 3->4 (pastwards, corresponds to 4->3 forwards) at time 0 to value from interval .1,.9. the value here is the proportion of migrants as defined in ms documentation and is NOT 4Nm. Symmetrical mean it will set the rates in both directions with this one flag 
+	# m: migration any. e.g., like the above example but will only set the one direction
+# referring to another tbi event in place of a interval will make that interval dependent on the other tbi event draw. This is to ensure that, e.g., a population can not merge and then change migration rates. If you refer to both intervals with the same tbi (tbi1 tbi1) this event will happen at the same time as that of tbi1.
+tbi0 ea 010 rlog_unif 2e5 1.5e6 runif 0.1 0.9
+tbi1 ea 212 rlog_unif 2e5 tbi2 runif 0.1 0.9
+tbi2 ej 23 rlog_unif_int 5e5 tbi3
+tbi3 ej 34 rlog_unif_int 1e6 tbi4
+tbi4 ej 01 rlog_unif_int 1.5e6 tbi5
+tbi5 ej 14 rlog_unif_int 3.87e6 1e7
+tbi6 Ne 0 rconstant 0 0 rlog_unif_int 1e5 1e6
+# condition ensures that values stay in bounds. Here ensure that tbi0 is less than tbi1. Currently a violation crashes the program.
+cond tbi0 lt tbi1
+# pop1 demography
+# can provide a singe value or a range. e.g., 95% CI from something like stairwayplot. These values are not recorded. Only a single value allowed on times.
+3432 Ne 0 178924 2e5
+7801 Ne 0 178924 2e5
 13361 Ne 0 268598
 20439 Ne 0 143992
 29447 Ne 0 116252
@@ -21,8 +27,8 @@ tbi6 Ne 1 rC 0.0 0.0 rUintL 100000 1000000
 55506 Ne 0 144849
 74080 Ne 0 200033
 97722 Ne 0 303346
-127813 Ne 0 475634
-#pop2 demography
+127813 Ne 0 475634 1e6
+# pop2 demography
 4487 Ne 1 20993
 6864 Ne 1 35317
 9889 Ne 1 60133
@@ -33,25 +39,4 @@ tbi6 Ne 1 rC 0.0 0.0 rUintL 100000 1000000
 42921 Ne 1 236609
 55783 Ne 1 260564
 72154 Ne 1 265067
-92990 Ne 1 259062
-#pop3 demography
-11292 Ne 2 117587
-17273 Ne 2 327350
-24886 Ne 2 654873
-34575 Ne 2 903043
-46908 Ne 2 986528
-1313336 Ne 2 782992
-#pop4 demography
-13690 Ne 3 92530
-20941 Ne 3 369542
-30171 Ne 3 971981
-41918 Ne 3 1492436
-56870 Ne 3 1534554
-75901 Ne 3 1339520
-#pop5 demography
-11158 Ne 4 70861
-17069 Ne 4 165020
-24591 Ne 4 354435
-34166 Ne 4 551301
-46354 Ne 4 638336
-61865 Ne 4 633365
+92990 Ne 1 259062 1e6
