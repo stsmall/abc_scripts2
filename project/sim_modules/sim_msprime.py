@@ -11,6 +11,7 @@ import pandas as pd
 import multiprocessing
 from math import ceil
 from tqdm import tqdm
+from itertools import product
 from project.sim_modules.readconfig import read_config_stats
 from project.stat_modules.write_stats import headers, stats_out
 from project.stat_modules.sequtils import read_trees
@@ -63,7 +64,7 @@ def demo_config(params):
     demo_param_df_srt.sort_index(inplace=True)
     dem_list = []
     sourcelist = []
-
+    poplist = list(range(len(model_dt["sampleSize"])))
     # "time": float, "event": [Ne, ej, tes, tm], "pop": [0-9], "value": float
     for time, row in demo_param_df_srt.iterrows():
         event = row["event"]
@@ -82,7 +83,8 @@ def demo_config(params):
                     size = row["value"][0]
             else:
                 size = row["value"]
-            dem_list.append(msp.PopulationParametersChange(time=time, initial_size=size, population=pop1, growth_rate=0))
+            if pop1 not in sourcelist:
+                dem_list.append(msp.PopulationParametersChange(time=time, initial_size=size, population=pop1, growth_rate=0))
         elif "ej" in event:
             pop1, pop2 = row["pops"]
             pop1 = int(pop1)
@@ -90,8 +92,12 @@ def demo_config(params):
             # pop1 -> pop2
             if pop1 not in sourcelist:
                 dem_list.append(msp.MassMigration(time=time, source=pop1, destination=pop2, proportion=1.0))
-                dem_list.append(msp.MigrationRateChange(time, 0, (pop1, pop2)))
                 sourcelist.append(pop1)
+                # set mig to 0 for all w/ source
+                pp = set(poplist) - set(sourcelist)
+                mig_reset = list(product([pop1], pp)) + list(product(pp, [pop1]))
+                for i, j in mig_reset:
+                    dem_list.append(msp.MigrationRateChange(time, 0, (i, j)))
         elif "es" in event:
             # es34
             pop1, pop2 = row["pops"]

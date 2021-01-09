@@ -9,13 +9,24 @@ module for generating draws from priors for filet_sims.py
 
 import pandas as pd
 import numpy as np
-from .drawdist import DrawDist
-from .recurtbi import itdict
+from project.sim_modules.drawdist import DrawDist
+from project.sim_modules.recurtbi import itdict
+
+avail_dist = {"unif": ("low", "high"), "log_unif": ("low", "high"),
+              "unif_int": ("low", "high"), "log_unif_int": ("low", "high"),
+              "log_normal": ("mu", "sigma"), "norm_int": ("mu", "sigma"),
+              "log_norm_int": ("mu", "sigma"), "exp": ("scale", "scale"),
+              "beta": ("a", "b"), "constant": ("c", "c")}
 
 
 def draw_params(param_dt, size: int, condition_ls):
     """Draws parameters from dist of lenght size.
 
+    avail_dist = {"unif":("low", "high"), "log_unif": ("low", "high"),
+                  "unif_int":("low", "high"), "log_unif_int:("low", "high"),
+                  "log_normal":("mu", "sigma"), "norm_int":("mu", "sigma"),
+                  "log_norm_int":("mu", "sigma"), "exp":("scale", "scale"),
+                  "beta":("a", "b"), "constant":("c", "c")}
     Parameters
     ----------
     param_dt : TYPE
@@ -36,41 +47,39 @@ def draw_params(param_dt, size: int, condition_ls):
     # set up tbi dict
     for i, tbi in enumerate(param_dt["tbi"]):
         tbi_dt[tbi] = param_dt["time"][i]
+    tbi_dt = itdict(tbi_dt, size)
 
-    # tbi_dt = itdict(tbi_dt, size)
-
-    # TODO: recursion
-    # set up last w/ not tbi in low/high
-    dist, low, high = tbi_dt[f"tbi{i}"]
-    draw = getattr(DrawDist(), dist[1:])
-    tbi_dt[f"tbi{i}"] = draw(float(low), float(high), size)
-    # fill in remaining
-    i -= 1  # interate through in reverse
-    while i >= 0:
-        dist, low, high = tbi_dt[f"tbi{i}"]
-        draw = getattr(DrawDist(), dist[1:])
-        if "tbi" in low or "tbi" in high:
-            if "tbi" in low and "tbi" in high:
-                low = tbi_dt[low]
-                high = tbi_dt[high]
-                size_n = 1
-            elif "tbi" in low:
-                low = tbi_dt[low]
-                high = np.full(size, float(high))
-                size_n = 1
-            elif "tbi" in high:
-                high = tbi_dt[high]
-                low = np.full(size, float(low))
-                size_n = 1
-            try:
-                tbi_dt[f"tbi{i}"] = draw(low, high, size_n)
-            except ValueError:
-                assert low == high
-                # low == high, ensure both events happen at the same time
-                tbi_dt[f"tbi{i}"] = tbi_dt[low]
-        else:
-            tbi_dt[f"tbi{i}"] = draw(float(low), float(high), size)
-        i -= 1
+    # # set up last w/ not tbi in low/high
+    # dist, low, high = tbi_dt[f"tbi{i}"]
+    # draw = getattr(DrawDist(), dist[1:])
+    # tbi_dt[f"tbi{i}"] = draw(float(low), float(high), size)
+    # # fill in remaining
+    # i -= 1  # interate through in reverse
+    # while i >= 0:
+    #     dist, low, high = tbi_dt[f"tbi{i}"]
+    #     draw = getattr(DrawDist(), dist[1:])
+    #     if "tbi" in low or "tbi" in high:
+    #         if "tbi" in low and "tbi" in high:
+    #             low = tbi_dt[low]
+    #             high = tbi_dt[high]
+    #             size_n = 1
+    #         elif "tbi" in low:
+    #             low = tbi_dt[low]
+    #             high = np.full(size, float(high))
+    #             size_n = 1
+    #         elif "tbi" in high:
+    #             high = tbi_dt[high]
+    #             low = np.full(size, float(low))
+    #             size_n = 1
+    #         try:
+    #             tbi_dt[f"tbi{i}"] = draw(low, high, size_n)
+    #         except ValueError:
+    #             assert low == high
+    #             # low == high, ensure both events happen at the same time
+    #             tbi_dt[f"tbi{i}"] = tbi_dt[low]
+    #     else:
+    #         tbi_dt[f"tbi{i}"] = draw(float(low), float(high), size)
+    #     i -= 1
 
     # check conditions
     if condition_ls:
@@ -87,6 +96,7 @@ def draw_params(param_dt, size: int, condition_ls):
     for tvalue in param_dt["value"]:
         if tvalue:
             dist, low, high = tvalue
+            assert dist[1:] in avail_dist, "dist not recognized"
             draw = getattr(DrawDist(), dist[1:])
             value_ls.append(draw(float(low), float(high), size))
         else:
@@ -121,6 +131,9 @@ def parse_model(in_file, size):
                 if line.strip():
                     if line.startswith("tbi"):
                         x_lin = line.split()
+                        if "#" in x_lin:
+                            ix = x_lin.index("#")
+                            x_lin = x_lin[:ix]
                         param_dt["tbi"].append(x_lin[0])
                         param_dt["event"].append(x_lin[1])
                         param_dt["pops"].append(list(x_lin[2]))
@@ -133,18 +146,22 @@ def parse_model(in_file, size):
                             param_dt["value"].append([])
                     elif line.startswith("cond"):
                         c_lin = line.split()
+                        if "#" in c_lin:
+                            ix = c_lin.index("#")
+                            c_lin = c_lin[:ix]
                         condition_ls.append(c_lin[1:])
                     else:
                         y_lin = line.split()
+                        if "#" in y_lin:
+                            ix = y_lin.index("#")
+                            y_lin = y_lin[:ix]
                         assert y_lin[0].isdigit(), "no tbi_, line must start with integer/float"
                         event_dt["time"].append(int(y_lin[0]))
                         event_dt["event"].append(y_lin[1])
                         event_dt["pops"].append(list(y_lin[2]))
                         event_dt["value"].append(list(map(float, y_lin[3:])))
-
     event_df = pd.DataFrame(event_dt, index=range(len(event_dt["time"])))
     # sort and draw tbi events
     param_dt = draw_params(param_dt, size, condition_ls)
     param_df = pd.DataFrame(param_dt, index=param_dt["tbi"])
-
     return event_df, param_df

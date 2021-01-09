@@ -50,7 +50,15 @@ def write_params(param_df, outfile, sim_number, dryrun):
         DESCRIPTION.
 
     """
-    headers = [f"{ep.event}_{''.join(ep.pops)}" for ep in param_df.itertuples()]
+    headers = []
+    for ep in param_df.itertuples():
+        i = 0
+        base = f"{ep.event}_{''.join(ep.pops)}"
+        col = f"{base}_{i}"
+        while col in headers:
+            i += 1
+            col = f"{base}_{i}"
+        headers.append(f"{col}")
     iterables = [headers, ["time", "value"]]
     m_ix = pd.MultiIndex.from_product(iterables, names=['tbi', 'params'])
     param_ls = []
@@ -66,7 +74,7 @@ def write_params(param_df, outfile, sim_number, dryrun):
         for c in df_col:
             if len(df[c[0]][c[1]].unique()) > 1:
                 sns_plot = sns.displot(data=df[c[0]], x=c[1])
-                sns_plot.savefig(f"{c[0]}_{c[1]}.pdf")
+                sns_plot.savefig(f"{outfile}.{c[0]}_{c[1]}.pdf")
     else:
         df.to_csv(f"{outfile}.priors.out")
 
@@ -141,7 +149,7 @@ def main():
         write_params(param_df, priors_outfile, sim_number, dry_run)
 
     if "discoal" in ms_path:
-        simulate_discoal(model_dt, demo_df, param_df, ms_path, sim_path, sim_number, outfile)
+        simulate_discoal(ms_path, model_dt, demo_df, param_df, sim_number, sim_path, nprocs, stats_config, dry_run)
     elif "msbgs" in ms_path:
         simulate_msbgs(model_dt, demo_df, param_df, ms_path, sim_path, sim_number, outfile)
     elif "scrm" in ms_path:

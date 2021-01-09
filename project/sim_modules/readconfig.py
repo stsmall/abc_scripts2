@@ -30,7 +30,7 @@ def read_config_sims(configFile, ms_path):
         effective_size = list(map(float, effective_size.split(",")))
         effective_size = list(map(int, effective_size))
     else:
-        effective_size = int(effective_size)
+        effective_size = int(float(effective_size))
 
     recomb_rate = config.get(sim, "recombination_rate")
     if recomb_rate:

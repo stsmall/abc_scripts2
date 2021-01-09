@@ -4,9 +4,16 @@ Created on Tue Feb  4 13:31:12 2020
 @author: Scott T. Small
 
 """
-from .drawdist import DrawDist
+from project.sim_modules.drawdist import DrawDist
+
+avail_dist = {"unif": ("low", "high"), "log_unif": ("low", "high"),
+              "unif_int": ("low", "high"), "log_unif_int": ("low", "high"),
+              "log_normal": ("mu", "sigma"), "norm_int": ("mu", "sigma"),
+              "log_norm_int": ("mu", "sigma"), "exp": ("scale", "scale"),
+              "beta": ("a", "b"), "constant": ("c", "c")}
 
 cn = 0
+
 
 def itdict(d, size):
     global cn
@@ -22,26 +29,10 @@ def itdict(d, size):
                         d[k][2] = d[high]
                 else:
                     draw = getattr(DrawDist(), dist[1:])
+                    assert dist[1:] in avail_dist,"dist not recognized"
                     d[k] = draw(float(low), float(high), size)
                     cn += 1
                     return itdict(d, size)
     return d
 
 # d={"tbi1": [0, "tbi2"], "tbi2": ["tbi3", "tbi4"], "tbi3":[100, "tbi4"],"tbi4": [1000, 10000]}
-
-# def itdict(d):
-#     global cn
-#     while cn < len(d):
-#         for k, v in d.items():
-#             if type(v) is list:
-#                 if "tbi" in str(v[0]):
-#                     if type(d[v[0]]) is int:
-#                         d[k][0] = d[v[0]]
-#                 elif "tbi" in str(v[1]):
-#                     if type(d[v[1]]) is int:
-#                         d[k][1] = d[v[1]]
-#                 else:
-#                     d[k] = np.random.randint(v[0], v[1])
-#                     cn += 1
-#                     return itdict(d)
-#     return d

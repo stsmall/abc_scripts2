@@ -246,7 +246,7 @@ def zx(p1, pos, hap, win_size, length_bp):
     p1_ = range(p1)
     p2_ = range(p1, hap.shape[0])
     pos, h1, h2 = pop2seg(p1_, p2_, pos, hap)
-    zn_sg = np.array(ld_window(pos, h1+h2, win_size, length_bp))
+    zn_sg = np.array(ld_window(pos, np.concatenate([h1, h2], axis=0), win_size, length_bp))
     # calc Zns1 & Zns2
     zn1 = np.array(ld_window(pos, h1, win_size, length_bp))
     zn2 = np.array(ld_window(pos, h2, win_size, length_bp))

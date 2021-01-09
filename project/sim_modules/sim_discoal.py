@@ -5,9 +5,16 @@ Created on Wed Dec 16 20:32:28 2020
 @author: Scott T. Small
 
 """
+import subprocess
 import numpy as np
 import pandas as pd
-import tqdm
+import multiprocessing
+from math import ceil
+from tqdm import tqdm
+from project.sim_modules.readconfig import read_config_stats
+from project.stat_modules.write_stats import headers, stats_out
+from project.stat_modules.sequtils import read_ms_stream
+from project.stat_modules.sumstats import PopSumStats
 
 
 def selection_parse(ms_dt):
@@ -266,7 +273,7 @@ def model_discoal(params, ne0):
     return dem_list
 
 
-def command_line(params):
+def run_simulation(params):
     """Create a single instance of a call to simulator.
 
     Parameters
@@ -321,11 +328,39 @@ def command_line(params):
     ms_base = ("{ms} {nhaps} {loci} {basepairs} -t {theta} -r {rho} "
                "{gen_cov} {subpops} {ne_subpop} {demo} {sel}")
     mscmd = ms_base.format(**ms_params)
-    ms_cmd = " ".join(mscmd.split())
-    return ms_cmd
+    if dry_run:
+        ms_cmd = " ".join(mscmd.split())
+        print(ms_cmd)
+    elif statsconfig:
+        length_bp = stats_dt["length_bp"]
+        pfe = stats_dt["perfixder"]
+        # run sims
+        output = subprocess.check_output(mscmd, shell=True)
+        pos_ls, hap_ls, count_ls = read_ms_stream(output, nhaps, length_bp, pfe, seq_error=True)
+        # calc stats
+        i = 0
+        stat_mat = np.zeros([model_dt["loci"], header_len])
+        for pos, haps, counts in zip(pos_ls, hap_ls, count_ls):
+            stats_ls = []
+            popsumstats = PopSumStats(pos, haps, counts, stats_dt)
+            for stat in stats_dt["calc_stats"]:
+                stat_fx = getattr(popsumstats, stat)
+                try:
+                    ss = stat_fx()
+                    # print(f"{stat} =  {len(ss)}")
+                except IndexError:
+                    ss = [np.nan] * len(stats_dt["pw_quants"])
+                stats_ls.extend(ss)
+            stat_mat[i, :] = stats_ls
+            i += 1
+        pop_stats_arr = np.nanmean(stat_mat, axis=0)
+        return pop_stats_arr
+    else:
+        ms_cmd = " ".join(mscmd.split())
+        return ms_cmd
 
 
-def simulate_discoal(model_dict, demo_dataframe, param_df, ms_path, sim_path, sim_number, outfile):
+def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number, outfile, nprocs, stats_config, dryrun):
     """Main simulate code for discoal.
 
     Parameters
@@ -353,30 +388,32 @@ def simulate_discoal(model_dict, demo_dataframe, param_df, ms_path, sim_path, si
     # =========================================================================
     #  Globals
     # =========================================================================
+    global ms_exe
     global demo_df
     global model_dt
-    global nhaps
     global mu
     global rec
+    global ploidy
     global scaled_Ne
-    global initial_model
-    global hybrid_model
-    global outfile_tree
-    global ms_exe
+    global nhaps
     global sample_sizes
     global npops
-    global ploidy
     global init_sizes
+    global dry_run
+
+    global statsconfig
+    global stats_dt
+    global header_len
+    global header
     # =========================================================================
     # declare globals
     ms_exe = ms_path
+    dry_run = dryrun
     model_dt = model_dict
     demo_df = demo_dataframe
     nhaps = sum(model_dt["sampleSize"])
     sample_sizes = model_dt["sampleSize"]
     npops = len(sample_sizes)
-    ploidy = model_dt["ploidy"]
-    init_sizes = [size * ploidy for size in model_dt["initialSize"]]
     # set mutation rate
     mut_rate = model_dt["mutation_rate"]
     if type(mut_rate) == list:
@@ -389,17 +426,19 @@ def simulate_discoal(model_dict, demo_dataframe, param_df, ms_path, sim_path, si
     rec_rate = model_dt["recombination_rate"]
     if type(rec_rate) == list:
         if len(rec_rate) == 2:
-            low, high = mut_rate
+            low, high = rec_rate
             rec = np.random.uniform(low, high, sim_number)
     else:
+        # rec = np.random.exponential(rec_rate, sim_number)
         rec = [rec_rate]
-
     # set Ne
     ploidy = model_dt["ploidy"]
+    init_sizes = [size * ploidy for size in model_dt["initialSize"]]
     effective_size = model_dt["eff_size"]
     if type(effective_size) == list:
-        low, high = effective_size
-        scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
+        if len(effective_size) == 2:
+            low, high = effective_size
+            scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
     else:
         scaled_Ne = [effective_size * ploidy]
 
@@ -408,11 +447,45 @@ def simulate_discoal(model_dict, demo_dataframe, param_df, ms_path, sim_path, si
     pops = param_df["pops"].values
     time_arr = list(zip(*param_df["time"].values))
     value_arr = list(zip(*param_df["value"].values))
-    param_gen = ({"time": time_arr[i], "event":event, "pops":pops, "value": value_arr[i]} for i in range(sim_number))
-    progressbar = tqdm.tqdm(total=sim_number, unit='sims')
-    with open(sim_path, 'w') as sims_outfile:
+    param_gen = ({"time": time_arr[i], "event": event, "pops": pops, "value": value_arr[i]} for i in range(sim_number))
+    param_gen = list(param_gen)
+    # check nprocs
+    if nprocs > multiprocessing.cpu_count():  # check that there are not more requested than available
+        print("not {nprocs} processors available, setting to {multiprocessing.cpu_count()}")
+        nprocs = multiprocessing.cpu_count()
+    statsconfig = ''
+    # perform sims
+    if dry_run:
         for param in param_gen:
-            progressbar.update(1)
-            mscmd = command_line(param)
-            sims_outfile.write(f"{mscmd} >> {outfile}\n")
-    progressbar.close()
+            run_simulation(param)
+            break
+    elif stats_config:
+        stats_dt = read_config_stats(stats_config)
+        statsconfig = stats_config
+        # write headers
+        pops_outfile = open(f"{outfile}.pop_stats.txt", 'w')
+        pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt)
+        header_len = header_
+        header = header_ls
+        if nprocs == 1:
+            for param in tqdm(param_gen):
+                pop_stats_arr = run_simulation(param)
+                pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
+            pops_outfile.close()
+        else:
+            # chunk and MP
+            nk = int(sim_number / nprocs)
+            chunk_list = [param_gen[i:i + nk] for i in range(0, len(param_gen), nk)]
+            chunksize = ceil(nk/nprocs)
+            pool = multiprocessing.Pool(nprocs)
+            for i, args in enumerate(chunk_list):
+                pop_stats_arr = pool.map(run_simulation, args, chunksize=chunksize)
+                pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
+                print(i)
+            pool.close()
+            pops_outfile.close()
+    else:
+        with open(f"{outfile}.sims.cmd.txt", 'w') as sims_outfile:
+            for param in tqdm(param_gen):
+                mscmd = run_simulation(param)
+                sims_outfile.write(f"{mscmd} >> {outfile}.sims.out\n")

@@ -1,7 +1,7 @@
 tbi0 Ne 0 rconstant 0 0 runif_int 1e5 2e5
-tbi1 Ne 1 rconstant 0 0 runif_int 1e5 2e5
-tbi2 ej 01 runif_int 2e5 1e6
-cond tbi0 lt tbi2
+tbi4 Ne 1 rconstant 0 0 runif_int 1e5 2e5
+tbi20 ej 01 runif_int 2e5 1e6
+#cond tbi0 lt tbi2
 # pop1 demography
 3432 Ne 0 178924
 7801 Ne 0 178924

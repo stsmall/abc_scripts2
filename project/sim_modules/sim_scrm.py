@@ -188,7 +188,7 @@ def run_simulation(param_df):
                "{subpops} {ne_subpop} {demo}")
     mscmd = ms_base.format(**ms_params)
     if dry_run:
-        ms_base = ("{ms} {nhaps} {loci} -t {theta} -r {rho} {basepairs} "
+        ms_base = ("{ms} {nhaps} 1 -t 1 -r 1 1000 "
                    "{subpops} {ne_subpop} {demo} --print-model")
         mscmd = ms_base.format(**ms_params)
         output = subprocess.check_output(mscmd, shell=True)
