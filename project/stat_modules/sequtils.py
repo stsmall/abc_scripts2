@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Mon Dec 28 23:18:58 2020
@@ -11,8 +10,7 @@ are created with a section header followed by an underline of equal length.
 """
 
 import numpy as np
-from math import ceil
-from project.stat_modules.msformat import ms_parse, discrete_positions
+from project.stat_modules.msformat import discrete_positions
 
 
 def add_seq_error(pos, haps, length_bp, perfixder):
@@ -54,6 +52,15 @@ def add_seq_error(pos, haps, length_bp, perfixder):
     return pos, haps
 
 
+def add_seqerror(pos, haps, length_bp, pfe, seq_error):
+    if seq_error:
+        pos, haps = add_seq_error(pos, haps, length_bp, pfe)
+
+    counts = haps.sum(axis=0).astype(int)
+
+    return pos, haps, counts
+
+
 def read_trees(ts, length_bp, pfe, seq_error):
     pos = np.array([variant.site.position for variant in ts.variants()])
     pos = pos.astype(int)
@@ -66,18 +73,35 @@ def read_trees(ts, length_bp, pfe, seq_error):
 
     return pos, haps, counts, breakpoints
 
-# TODO: THIS
-def read_ms(msfile, length_bp, pfe, seq_error):
-    ms_dt = ms_parse(msfile)
-    pos_list = ms_dt["pos"]
-    hap_list = ms_dt["haps"]
-    # pop_config = ms_dt["pops"]
-    count_list = [hap.sum(axis=0).astype(int) for hap in hap_list]
-    if seq_error:
-        for pos, hap in zip(pos_list, hap_list):
-            pos_, hap_ = add_seq_error(pos, hap, length_bp, pfe)
-    count_list = [hap.sum(axis=0).astype(int) for hap in hap_list]
-    return pos_list, hap_list, count_list
+
+def read_ms(msfiles, msexe, nhaps, length_bp):
+    ms_dt = {}
+    pos_ls = []
+    hap_ls = []
+    i = 1
+    for msfile in msfiles:
+        with open(msfile) as ms:
+            next(ms)  # skip the first header
+            for line in ms:
+                if line.startswith(msexe):
+                    ms_dt[i] = (pos_ls, hap_ls)
+                    pos_ls = []
+                    hap_ls = []
+                    i += 1
+                if line.startswith("positions"):
+                    positions = line.strip().split()
+                    pos_arr = np.array(positions[1:], dtype=np.float64)
+                    new_pos = discrete_positions(pos_arr, length_bp)
+                    # haps line
+                    hap_arr = np.zeros((nhaps, pos_arr.shape[0]), dtype=np.uint8)
+                    for cix in range(nhaps):
+                        line = next(ms)
+                        line = list(line.strip())
+                        hap_arr[cix, :] = np.array(line, dtype=np.uint8)
+                    pos_ls.append(new_pos)
+                    hap_ls.append(hap_arr)
+
+    return ms_dt
 
 
 def read_ms_stream(output, nhaps, length_bp, pfe, seq_error):

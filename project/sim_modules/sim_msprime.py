@@ -59,6 +59,9 @@ def demo_config(params):
         DESCRIPTION.
 
     """
+    # mass migration does not reset migration rates
+    # population size changes do not make growth rates 0
+
     demo_param_df = pd.concat([demo_df, pd.DataFrame(params)])
     demo_param_df_srt = demo_param_df.set_index("time")
     demo_param_df_srt.sort_index(inplace=True)

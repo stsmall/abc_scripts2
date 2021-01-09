@@ -81,6 +81,8 @@ def model_scrm(params, ne0):
         DESCRIPTION.
 
     """
+    # ej, mig from i set to 0, growth rates unchanged
+    # en/eN, growth rates set to 0
     demo_param_df = pd.concat([demo_df, pd.DataFrame(params)])
     demo_param_df_srt = demo_param_df.set_index("time")
     demo_param_df_srt.sort_index(inplace=True)
@@ -184,9 +186,6 @@ def run_simulation(param_df):
                 'demo': " ".join(dem_events),
                 }
 
-    ms_base = ("{ms} {nhaps} {loci} -t {theta} -r {rho} {basepairs} "
-               "{subpops} {ne_subpop} {demo}")
-    mscmd = ms_base.format(**ms_params)
     if dry_run:
         ms_base = ("{ms} {nhaps} 1 -t 1 -r 1 1000 "
                    "{subpops} {ne_subpop} {demo} --print-model")
@@ -198,6 +197,13 @@ def run_simulation(param_df):
             else:
                 print(line.decode())
     elif statsconfig:
+        # default is -l 500.
+        # smc' is -l 0.
+        # exact -l -1 or 100000
+        # good choices: scrm_l = "-l 100r"; scrm_l = "-l 250r"
+        ms_base = ("{ms} {nhaps} {loci} -t {theta} -r {rho} {basepairs} "
+                   "{subpops} {ne_subpop} {demo} " + scrm_l)
+        mscmd = ms_base.format(**ms_params)
         length_bp = stats_dt["length_bp"]
         pfe = stats_dt["perfixder"]
         # run sims
@@ -222,12 +228,15 @@ def run_simulation(param_df):
         pop_stats_arr = np.nanmean(stat_mat, axis=0)
         return pop_stats_arr
     else:
+        ms_base = ("{ms} {nhaps} {loci} -t {theta} -r {rho} {basepairs} "
+                   "{subpops} {ne_subpop} {demo}")
+        mscmd = ms_base.format(**ms_params)
         ms_cmd = " ".join(mscmd.split())
         return ms_cmd
 
 
 def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
-                  outfile, nprocs, stats_config, dryrun):
+                  outfile, nprocs, stats_config, dryrun, approx):
     """Main simulate code for discoal.
 
     Parameters
@@ -267,6 +276,7 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
     global npops
     global init_sizes
     global dry_run
+    global scrm_l
 
     global statsconfig
     global stats_dt
@@ -274,6 +284,8 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
     global header
     # =========================================================================
     # declare globals
+    if approx != '':
+        scrm_l = f"-l {approx}"
     ms_exe = ms_path
     dry_run = dryrun
     model_dt = model_dict

@@ -179,18 +179,18 @@ def dd1_2(p1, pos, gt, win_size, length_bp, quants):
     return dd12_ls
 
 
-def pw_within(p1, pos, gt, win_size, length_bp):
+def pw_within(pos, gt, win_size, length_bp):
     """Pairwise divergence among all pairs in a gt matrix."""
+    p_ix = gt.shape[1]
     gtseg, pos_s = get_seg(gt, pos)
-    p1_ = range(p1)
     dxy_ls = []
     coords = (range(0, length_bp + win_size, win_size))
     windows = list(zip(coords[0::1], coords[1::1]))
     for s, e in windows:
         ix = pos_s.locate_range(s, e)
         dm = []
-        gtpop1 = gtseg[ix, p1_]
-        for i1 in p1_:
+        gtpop1 = gtseg[ix, :]
+        for i1 in range(p_ix):
             p1_i = gtpop1[:, i1]
             dxy_ = p1_i[:, None] != gtpop1
             pi_w = np.count_nonzero(dxy_, axis=0) / win_size
@@ -213,7 +213,7 @@ def ddRank1_2(p1, pos, gt, win_size, length_bp, quants):
     p2_ = range(p1, gtseg.shape[1])
     for p in [p1_, p2_]:
         gtpop = gt.take(p, axis=1)
-        pw_win = pw_within(p1, pos, gtpop, win_size, length_bp)
+        pw_win = pw_within(pos, gtpop, win_size, length_bp)
         ddR12 = [stats.percentileofscore(pw, dmin_[i]) for i, pw in enumerate(pw_win)]
         ddR12_ls.extend(np.quantile(ddR12, quants))
     return ddR12_ls

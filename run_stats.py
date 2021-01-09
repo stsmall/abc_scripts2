@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Fri Apr 24 13:05:00 2020
@@ -10,17 +9,12 @@ depends: parse_sims.py, sims_stats.py, obs_stats.py
 Example
 -------
 
-abc_stats.py sim --infile ms.out --outfile ms.stats --pops 4 --pairs 0-1 0-2 0-3
-    --stats sfs jsfs --mask --gff foo.gff --mode split-run
+run_stats.py sim tests/msout/test.ms -cfg docs/examples/example.stats.ms.cfg
+    --nprocs 1 --ms msmove
 
-    --mask for FILET, expects names as 0-1.mask.txt 0-2.mask.txt ...
-    --gff to avoid genes
-
-abc_stats.py obs --infile vcf/h5 --fasta foo.mask.fa --gff foo.gff --pops 4
+run_stats.py obs --infile vcf/h5 --fasta foo.mask.fa --gff foo.gff --pops 4
     --pairs 0-1 0-2 0-3 --stats filet --anc_fasta anc.fasta
 
-    --fasta masked fasta for FILET masking
-    --anc_fasta for FILET polarizing and unfolded SFS
 
 Notes
 -----
@@ -28,65 +22,84 @@ Notes
 Creates summary stats from coalescent simulations: ms, msmove, discoal, msprime
 There are two main modes: sims and obs
 
- Mode 'sims' is for ms-style formats in any file, those produced by abc_sims.py
+ Mode 'sims' is for ms-style formats in any file, those produced by run_sims.py
 
- Mode 'obs' is for generating the same stats but with a starting vcf. Take a look
-    at generating mask files from FILET and diploshic
+ Mode 'obs' is for generating the same stats but with a starting vcf.
 
-
-Example
--------
-
-    $ python abc_stats.py --infile --pairs --stats --out_file --split
 
 """
 import sys
 import argparse
 import os
 import numpy as np
-
-from project.sim_modules.readconfig import read_config_stats
-from project.stat_modules.write_stats import headers, stats_out
-from project.stat_modules.sequtils import read_ms
-from project.stat_modules.sumstats import PopSumStats
-
 import multiprocessing
 import glob
 from math import ceil
 from tqdm import tqdm
-# set globals
-chunk = 100
-chunkopt = True
+
+from project.sim_modules.readconfig import read_config_stats
+from project.stat_modules.write_stats import headers, stats_out
+from project.stat_modules.sequtils import read_ms, add_seqerror
+from project.stat_modules.sumstats import PopSumStats
 
 
-def calc_simstats(ms_file):
-    infile = os.path.split(ms_file)[-1]
-    length_bp = stats_dt["length"]
-    pos, haps, counts = read_ms(infile, length_bp, seq_error=True)
-    # calc true stats
-    stats_list = []
-    for stat in stats_dt["calc_stats"]:
-        stat_fx = getattr(PopSumStats, stat)
-        stats_list.append(stat_fx(pos, haps, counts, stats_dt))
+def calc_simstats(ms):
+    # calc stats
+    stat_mat = np.zeros([len(ms), header_len])
+    length_bp = stats_dt["length_bp"]
+    pfe = stats_dt["perfixder"]
+    i = 0
+    for pos, haps in zip(*ms):
+        pos, haps, counts = add_seqerror(pos, haps, length_bp, pfe, seq_error=True)
+        stats_ls = []
+        popsumstats = PopSumStats(pos, haps, counts, stats_dt)
+        for stat in stats_dt["calc_stats"]:
+            stat_fx = getattr(popsumstats, stat)
+            try:
+                ss = stat_fx()
+                # print(f"{stat} =  {len(ss)}")
+            except IndexError:
+                ss = [np.nan] * len(stats_dt["pw_quants"])
+            stats_ls.extend(ss)
+        stat_mat[i, :] = stats_ls
+        i += 1
+    pop_stats_arr = np.nanmean(stat_mat, axis=0)
 
-    return stats_list
+    return pop_stats_arr
 
 
-def run_simstats(ms_files, out_dir, nprocs):
+def run_simstats(ms_files, msexe, outfile, nprocs):
     """ """
+    global header_len
+    global header
+    # read in all the files
+    length_bp = stats_dt["length_bp"]
+    nhaps = stats_dt["num_haps"]
+    ms_dict = read_ms(ms_files, msexe, nhaps, length_bp)
+    sim_number = len(ms_dict)
     # write headers
-    pops_outfile = open(f"{out_dir}.pop_stats.txt", 'w')
-    pops_outfile = headers(pops_outfile, stats_dt)
-    # chunk and MP
-    nk = 10
-    chunk_list = [ms_files[i:i + nk] for i in range(0, len(ms_files), nk)]
-    chunksize = ceil(len(chunk_list[0])/nprocs)
-    pool = multiprocessing.Pool(nprocs)
-    for args in tqdm(chunk_list):
-        pop_stats_arr = pool.map(calc_simstats, args, chunksize=chunksize)
-        pops_out = stats_out(pop_stats_arr, pops_outfile)
-    pool.close()
-    pops_out.close()
+    pops_outfile = open(f"{outfile}.pop_stats.txt", 'w')
+    pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt)
+    header_len = header_
+    header = header_ls
+    if nprocs == 1:
+        for ms in tqdm(ms_dict.values()):
+            pop_stats_arr = calc_simstats(ms)
+            pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
+        pops_outfile.close()
+    else:
+        # chunk and MP
+        nk = int(sim_number / nprocs)
+        ms_vals = list(ms_dict.values())
+        chunk_list = [ms_vals[i:i + nk] for i in range(0, len(ms_vals), nk)]
+        chunksize = ceil(nk/nprocs)
+        pool = multiprocessing.Pool(nprocs)
+        for i, args in enumerate(chunk_list):
+            pop_stats_arr = pool.map(calc_simstats, args, chunksize=chunksize)
+            pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
+            print(i)
+        pool.close()
+        pops_outfile.close()
 
 
 # def calc_obsStats(vcfFile, chr_arm, chrlen, outFile, maskFile, anc_fasta,
@@ -156,6 +169,8 @@ def parse_args(args_in):
                           "must be same format used by Hudson\'s ms")
     parser_a.add_argument('-cfg', "--configFile",
                           help="path to config file, see examples")
+    parser_a.add_argument("--ms", type=str, required=True,
+                          help=" full path to discoal/msbgs/scrm exe")
     parser_a.add_argument('-o', "--outfile", default="./",
                           help="path to file where stats will be written")
     parser_a.add_argument("--nprocs", type=int, default=1,
@@ -201,7 +216,8 @@ def main():
     if argsDict["mode"] == "sim":
         ms_file = os.path.abspath(argsDict["ms_file"])
         configFile = argsDict["configFile"]
-        out_dir = os.path.abspath(argsDict["outfile"])
+        ms = argsDict["ms"]
+        outfile = os.path.abspath(argsDict["outfile"])
         nprocs = argsDict["nprocs"]
 
     else:
@@ -230,7 +246,7 @@ def main():
             ms_files = glob.glob("*.msout")
         else:
             ms_files = [ms_file]
-        run_simstats(ms_files, out_dir, nprocs)
+        run_simstats(ms_files, ms, outfile, nprocs)
 
     elif argsDict["mode"] == "obs":
         pass

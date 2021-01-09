@@ -92,6 +92,8 @@ def parse_args(args_in):
                         " replications alter loci in config file")
     parser.add_argument("--ms", type=str, default="msprime",
                         help=" full path to discoal/msbgs/scrm exe")
+    parser.add_argument("--approx", type=str, default='',
+                        help="approx to coal w/ recomb for scrm")
     parser.add_argument("--out", type=str, default="model",
                         help="outfilename to write simulations")
     parser.add_argument("--ploidy", type=float, default=1,
@@ -153,7 +155,7 @@ def main():
     elif "msbgs" in ms_path:
         simulate_msbgs(model_dt, demo_df, param_df, ms_path, sim_path, sim_number, outfile)
     elif "scrm" in ms_path:
-        simulate_scrm(ms_path, model_dt, demo_df, param_df, sim_number, sim_path, nprocs, stats_config, dry_run)
+        simulate_scrm(ms_path, model_dt, demo_df, param_df, sim_number, sim_path, nprocs, stats_config, dry_run, args.approx)
     elif "msprime" in ms_path:
         simulate_msprime(model_dt, demo_df, param_df, sim_number, sim_path, nprocs, stats_config, dry_run)
 
