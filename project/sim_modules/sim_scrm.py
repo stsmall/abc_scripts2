@@ -284,8 +284,10 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
     global header
     # =========================================================================
     # declare globals
-    if approx != '':
+    if approx:
         scrm_l = f"-l {approx}"
+    else:
+        scrm_l = ''
     ms_exe = ms_path
     dry_run = dryrun
     model_dt = model_dict
