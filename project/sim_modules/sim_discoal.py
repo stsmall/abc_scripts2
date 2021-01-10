@@ -474,7 +474,7 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number, 
             pops_outfile.close()
         else:
             # chunk and MP
-            nk = int(sim_number / nprocs)
+            nk = nprocs * 10
             chunk_list = [param_gen[i:i + nk] for i in range(0, len(param_gen), nk)]
             chunksize = ceil(nk/nprocs)
             pool = multiprocessing.Pool(nprocs)

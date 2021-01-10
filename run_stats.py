@@ -31,6 +31,7 @@ There are two main modes: sims and obs
 import sys
 import argparse
 import os
+import pathlib
 import numpy as np
 import multiprocessing
 import glob
@@ -89,7 +90,7 @@ def run_simstats(ms_files, msexe, outfile, nprocs):
         pops_outfile.close()
     else:
         # chunk and MP
-        nk = int(sim_number / nprocs)
+        nk = nprocs * 10
         ms_vals = list(ms_dict.values())
         chunk_list = [ms_vals[i:i + nk] for i in range(0, len(ms_vals), nk)]
         chunksize = ceil(nk/nprocs)
@@ -102,43 +103,33 @@ def run_simstats(ms_files, msexe, outfile, nprocs):
         pops_outfile.close()
 
 
-# def calc_obsStats(vcfFile, chr_arm, chrlen, outFile, maskFile, anc_fasta,
-#                   window, unmskfrac, pairs, sampleFile, stats, filet_path):
-#     """Calculate Obs stats.
+def calc_obsStats(vcf, chrom, chrom_len, out_file, pops_file, configFile,
+                  coord_bed, mask_bed, masked_frac, gff_file, gff_filter, reuse_zarr):
+    """Calculate stats from a VCF file."""
+    pass
+    vcf_path = pathlib(vcfFile)
+    outdir = os.path.dirname(vcf_path)
+    if reuse_zarr:
+        pass
+        #start from loading the zarr file
+    else:
+        pass
+        # build a new zarr
 
-#     vcfFile
-#     pops
-#     chr_arm
-#     genome_file
-#     gff3_file
-#     meta_file
-#     stats
+    # separate by populations.
+    # make 1 gt with all the positions/pops for 1 chrom
 
-#     Returns
-#     -------
-#     None.
+    # 1) apply gff_file & filter use locate_range
+    #     -subset of filtered gt and pos
+    # 2) turn into hap/pos/counts
+    # 3) pass to stats in coordinate chunks
+    #     using pos > X > pos
+    #     check that same coordinate range has less than 25% missing sites from maskbed
+    #     ADIVISE doing a SLIDING WINDOW here to better find locations that meet all criteria
+    # 4) print stats out to file
+    # chrom start stop sites STATS
 
-#     """
-#     vcf_path = os.path.abspath(vcfFile)
-#     outdir = os.path.dirname(vcf_path)
-#     calls = allel.read_vcf(vcfFile)
-#     chroms = calls["variants/CHROM"]
-#     positions = np.extract(chroms == chr_arm, calls["variants/POS"])
-#     #
-#     samples = calls["samples"]
-#     sample_pop = readSampleToPopFile(sampleFile)
-#     sub_pops = list(dict.fromkeys([item for x in [x.split("-") for x in pairs] for item in x]))
-#     sample_ix = []
-#     for pop in sub_pops:
-#         sample_ix.append([i for i in range(len(samples)) if sample_pop.get(samples[i], "popNotFound!") == pop])
-#     #
-#     rawgenos = np.take(calls["calldata/GT"], [i for i in range(len(chroms)) if chroms[i] == chr_arm], axis=0)
-#     #
-#     if maskFile:
-#         unmasked = readMaskDataForScan(maskFile, chr_arm)
-#         assert len(unmasked) == chrlen
-#     #
-
+    return None
 
 def parse_args(args_in):
     """Parse args.
@@ -190,7 +181,7 @@ def parse_args(args_in):
                           "VCF file")
     parser_b.add_argument('-cfg', "--configFile",
                           help="path to config stats file, see examples")
-    parser_b.add_argument('--coords_bed', default=None,
+    parser_b.add_argument('--coords_bed', default=1e6,
                           help="Path to a bed file of coordinates for stats")
     parser_b.add_argument('--mask_bed', default=None,
                           help="Path to a bed file of masked data sites")
@@ -225,11 +216,12 @@ def main():
         chrom = argsDict["chr_arm"]
         chrom_len = argsDict["chr_len"]
         out_file = argsDict["out_file"]
-        configFile = argsDict["configFile"]
         pops_file = argsDict["pops_file"]
+        configFile = argsDict["configFile"]
+        coord_bed = argsDict["coords_bed"]
         mask_bed = argsDict["mask_bed"]
-        gff_file = argsDict["gff"]
         masked_frac = argsDict["masked_frac"]
+        gff_file = argsDict["gff"]
         gff_filter = argsDict["gff_filter"]
     # =========================================================================
     #  Config parser
@@ -249,8 +241,8 @@ def main():
         run_simstats(ms_files, ms, outfile, nprocs)
 
     elif argsDict["mode"] == "obs":
-        pass
-        #calc_obsStats(vcf, chrom, chrom_len, out_file, pops_file, unmasked_frac=0.25)
+        calc_obsStats(vcf, chrom, chrom_len, out_file, pops_file, configFile,
+                      coord_bed, mask_bed, masked_frac, gff_file, gff_filter)
 
 
 if __name__ == "__main__":
