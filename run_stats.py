@@ -30,8 +30,7 @@ There are two main modes: sims and obs
 """
 import sys
 import argparse
-import os
-import pathlib
+from pathlib import Path
 import numpy as np
 import multiprocessing
 import glob
@@ -69,7 +68,7 @@ def calc_simstats(ms):
     return pop_stats_arr
 
 
-def run_simstats(ms_files, msexe, outfile, nprocs):
+def run_simstats(ms_files, msexe, outpath, nprocs):
     """ """
     global header_len
     global header
@@ -79,7 +78,8 @@ def run_simstats(ms_files, msexe, outfile, nprocs):
     ms_dict = read_ms(ms_files, msexe, nhaps, length_bp)
     sim_number = len(ms_dict)
     # write headers
-    pops_outfile = open(f"{outfile}.pop_stats.txt", 'w')
+    outfile = outpath.parent / f"{outpath.stem}.pop_stats.txt"
+    pops_outfile = open(outfile, 'w')
     pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt)
     header_len = header_
     header = header_ls
@@ -103,21 +103,31 @@ def run_simstats(ms_files, msexe, outfile, nprocs):
         pops_outfile.close()
 
 
-def calc_obsStats(vcf, chrom, chrom_len, out_file, pops_file, configFile,
-                  coord_bed, mask_bed, masked_frac, gff_file, gff_filter, reuse_zarr):
+def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     """Calculate stats from a VCF file."""
-    pass
-    vcf_path = pathlib(vcfFile)
-    outdir = os.path.dirname(vcf_path)
-    if reuse_zarr:
-        pass
-        #start from loading the zarr file
+    # if reuse_zarr is true
+    if zarrpath.exists():
+        zarfile = vcfpath.parent / f"{vcfpath.stem}.zarr"
+        # load zarr
     else:
-        pass
-        # build a new zarr
+        # make zarr
+        # load zarr
+    # load popdf
+    # keep only inds in the popdf
+    # separate df for each population ... keep position
 
-    # separate by populations.
-    # make 1 gt with all the positions/pops for 1 chrom
+    ## record indexes, rejoin as (inds, pos)
+    # with open(coords_bed) OR use a step-size:
+        # s = 0
+        # e = coord_bed
+        # s = e
+        # e += coord_bed
+
+        # select range, loc_ranges()
+        # pos, haps, counts =
+
+
+
 
     # 1) apply gff_file & filter use locate_range
     #     -subset of filtered gt and pos
@@ -174,24 +184,17 @@ def parse_args(args_in):
                           "for one chromosome arm (other arms will be ignored)")
     parser_b.add_argument('chr_arm', help="Exact name of the chromosome arm for"
                           "which feature vectors will be calculated")
-    parser_b.add_argument('chr_len', type=int, help="Length of the chromosome arm")
-    parser_b.add_argument('out_file', help="path to file where feature vectors "
-                          "will be written")
-    parser_b.add_argument('pops_file', help="individual names to pops as found in"
+    parser_b.add_argument('--pops_file', help="individual names to pops as found in"
                           "VCF file")
     parser_b.add_argument('-cfg', "--configFile",
                           help="path to config stats file, see examples")
-    parser_b.add_argument('--coords_bed', default=1e6,
+    parser_b.add_argument('--coords_bed', required=True,
                           help="Path to a bed file of coordinates for stats")
-    parser_b.add_argument('--mask_bed', default=None,
-                          help="Path to a bed file of masked data sites")
-    parser_b.add_argument('--masked_frac', default=0.25,
-                          help="cut-off for skipping window based on proportion of"
-                          " masked sites")
-    parser_b.add_argument('--gff', default=None,
-                          help="Path to a gff file, for selecting coding/noncoding regions")
-    parser_b.add_argument('--gff_filter', default=None, nargs='+',
-                          help="remove sites matching this keyword")
+    parser_b.add_argument('--zarr_path', type=str
+                          help="Path to a zarr file. If exists will reuse if not"
+                          " it will build one at that location")
+    parser_b.add_argument('-o', "--outfile", default="./",
+                          help="path to file where stats will be written")
     args = parser.parse_args(args_in)
     argsDict = vars(args)
 
@@ -205,24 +208,20 @@ def main():
     #  Gather args
     # =========================================================================
     if argsDict["mode"] == "sim":
-        ms_file = os.path.abspath(argsDict["ms_file"])
+        mspath = Path(argsDict["ms_file"])
         configFile = argsDict["configFile"]
         ms = argsDict["ms"]
-        outfile = os.path.abspath(argsDict["outfile"])
+        outpath = Path(argsDict["outfile"])
         nprocs = argsDict["nprocs"]
 
     else:
-        vcf = argsDict["vcfFileIn"]
+        vcfpath = Path(argsDict["vcfFileIn"])
         chrom = argsDict["chr_arm"]
-        chrom_len = argsDict["chr_len"]
-        out_file = argsDict["out_file"]
-        pops_file = argsDict["pops_file"]
         configFile = argsDict["configFile"]
+        pops = argsDict["pops_file"]
         coord_bed = argsDict["coords_bed"]
-        mask_bed = argsDict["mask_bed"]
-        masked_frac = argsDict["masked_frac"]
-        gff_file = argsDict["gff"]
-        gff_filter = argsDict["gff_filter"]
+        zarrpath = Path(argsDict["coords_bed"])
+        outpath = Path(argsDict["outfile"])
     # =========================================================================
     #  Config parser
     # =========================================================================
@@ -232,17 +231,15 @@ def main():
     #  Main executions
     # =========================================================================
     if argsDict["mode"] == "sim":
-        # get path to file/dir
-        if os.path.isdir(ms_file):
+        if mspath.is_dir():
             # will open many files, suffix with msout
-            ms_files = glob.glob("*.msout")
+            ms_files = list(mspath.glob("*.msout"))
         else:
-            ms_files = [ms_file]
-        run_simstats(ms_files, ms, outfile, nprocs)
+            ms_files = [mspath]
+        run_simstats(ms_files, ms, outpath, nprocs)
 
     elif argsDict["mode"] == "obs":
-        calc_obsStats(vcf, chrom, chrom_len, out_file, pops_file, configFile,
-                      coord_bed, mask_bed, masked_frac, gff_file, gff_filter)
+        calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath)
 
 
 if __name__ == "__main__":

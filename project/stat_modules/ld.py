@@ -12,7 +12,7 @@ are created with a section header followed by an underline of equal length.
 import numpy as np
 import moments.LD as mold
 from project.stat_modules.sequtils import h2gt, pop2seg
-import scipy.spatial.distance
+import scipy.spatial as ssp
 import warnings
 
 
@@ -61,7 +61,7 @@ def ld_intervals(nb_times, tmax, r, length_bp):
     return intervals
 
 
-def ld_pop2(p1, pos, hap, quants, maf=0.05):
+def ld_pop2(p1, pos, hap, quants, maf=0.05, randn=100):
     """Calculate the LD statistics in intervals between 2 pops.
 
     Parameters
@@ -86,6 +86,13 @@ def ld_pop2(p1, pos, hap, quants, maf=0.05):
     p1_ = range(int(p1/2))
     p2_ = range(int(p1/2), gt.shape[0])
     pos, gt1, gt2 = pop2seg(p1_, p2_, pos, gt)
+    if randn > 0:
+        try:
+            vix = np.random.choice(range(len(pos)), randn, replace=False)
+            gt1 = gt1[:, vix]
+            gt2 = gt2[:, vix]
+        except ValueError:
+            pass
     # L1*L2 where Li is number of snps in gtpop{i}_seg
     pw_ld = mold.Parsing.compute_pairwise_stats_between(gt1.T, gt2.T)[D2]
     ld_q = np.quantile(pw_ld, quants)
@@ -129,7 +136,41 @@ def ld_pop2_win(p1, pos, hap, win_size, length_bp, maf=0.05):
     return ld_wins
 
 
-def ld_pop_mp(pos, hap, intervals, maf=0.05):
+def ld_pop_complete(pos, hap, intervals, maf=0.05):
+    """Calculate the LD statistics in intervals for 1 pop.
+    If there are too many pw comparisons:
+        1) randomly thin SNPs
+        2) choose fewer individuals that will have fewer seg positions
+        3)
+    Parameters
+    ----------
+    gt : TYPE
+        DESCRIPTION.
+    pos : TYPE
+        DESCRIPTION.
+    intervals : TYPE
+        DESCRIPTION.
+    ld : TYPE
+        DESCRIPTION.
+    Returns
+    -------
+    ld_ls : TYPE
+        DESCRIPTION.
+    """
+    D2 = 0  # D2
+    pos, gt = h2gt(pos, hap, maf=maf)
+    ld_ls = []
+    c2 = pos[:, None]
+    pw_dist = ssp.distance.pdist(c2, 'cityblock')
+    pw_ld = mold.Parsing.compute_pairwise_stats(gt.T)[D2]
+    for dmin, dmax in intervals:
+        ld_interval = pw_ld[(pw_dist >= dmin) & (pw_dist <= dmax)]
+        ld_mean = np.mean(ld_interval)
+        ld_ls.append(ld_mean)
+    return ld_ls
+
+
+def ld_pop_mp(pos, hap, intervals, maf=0.05, randn=100):
     """Calculate the LD statistics in intervals for 1 pop.
 
     If there are too many pw comparisons:
@@ -156,14 +197,25 @@ def ld_pop_mp(pos, hap, intervals, maf=0.05):
     """
     D2 = 0  # D2
     pos, gt = h2gt(pos, hap, maf=maf)
-    ld_ls = []
+    # TODO: remove fixed anc
+    gt = gt.T
+    # get distances
     c2 = pos[:, None]
-    pw_dist = scipy.spatial.distance.pdist(c2, 'cityblock')
-    pw_ld = mold.Parsing.compute_pairwise_stats(gt.T)[D2]
+    pw_dist = ssp.distance.pdist(c2)
+    pwdist_mat = ssp.distance.squareform(pw_dist)
+    # ld average in intervals
+    ld_ls = []
     for dmin, dmax in intervals:
-        ld_interval = pw_ld[(pw_dist >= dmin) & (pw_dist <= dmax)]
-        ld_mean = np.mean(ld_interval)
-        ld_ls.append(ld_mean)
+        xx = np.where((pwdist_mat >= dmin) & (pwdist_mat <= dmax))
+        try:
+            rn = np.random.choice(range(len(xx[0])), randn, replace=False)
+            subset_i = xx[0][rn]
+            subset_j = xx[1][rn]
+        except ValueError:
+            subset_i = xx[0]
+            subset_j = xx[1]
+        ld_avg = [mold.Parsing.compute_pairwise_stats(gt[[i, j], :])[D2] for i, j in zip(subset_i, subset_j)]
+        ld_ls.append(np.mean(ld_avg))
     return ld_ls
 
 

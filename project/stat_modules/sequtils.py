@@ -137,7 +137,7 @@ def read_ms_stream(output, nhaps, length_bp, pfe, seq_error):
     return pos_ls, hap_ls, count_ls
 
 
-def get_seg(gt, pos, maf=None):
+def get_seg(gt, pos, maf=0):
     """Retain only sites and positions that are segregating in the sample.
 
     Parameters
@@ -155,22 +155,16 @@ def get_seg(gt, pos, maf=None):
         DESCRIPTION.
 
     """
-    if maf:
-        acpop = gt.count_alleles()
-        freq = acpop.to_frequencies()
-        freq_mask = (freq[:, 1] > maf) & (freq[:, 1] < 1)
-        gtseg = gt.compress(freq_mask)
-        pos_s = pos[freq_mask]
-    else:
-        acpop = gt.count_alleles()
-        seg = acpop.is_segregating()
-        gtseg = gt.compress(seg)
-        pos_s = pos[seg]
+    acpop = gt.count_alleles()
+    freq = acpop.to_frequencies()
+    freq_mask = (freq[:, 1] > maf) & (freq[:, 1] < 1)
+    gtseg = gt.compress(freq_mask)
+    pos_s = pos[freq_mask]
 
     return gtseg, pos_s
 
 
-def get_ac_seg(p1, pos, gt, maf=None):
+def get_ac_seg(p1, pos, gt, maf=0):
     """Select that are segregating in both populations.
 
     Parameters
@@ -192,12 +186,11 @@ def get_ac_seg(p1, pos, gt, maf=None):
         DESCRIPTION.
 
     """
-    if maf:
-        acpop = gt.count_alleles()
-        freq = acpop.to_frequencies()
-        freq_mask = (freq[:, 1] > maf) & (freq[:, 1] < 1)
-        gt = gt.compress(freq_mask)
-        pos = pos[freq_mask]
+    acpop = gt.count_alleles()
+    freq = acpop.to_frequencies()
+    freq_mask = (freq[:, 1] > maf) & (freq[:, 1] < 1)
+    gt = gt.compress(freq_mask)
+    pos = pos[freq_mask]
     # select subpops and count alleles
     gtseg, pos_s = get_seg(gt, pos)
     p1_ = range(p1)
@@ -241,23 +234,26 @@ def h2gtr(hap):
 
 def h2gt(pos, hap, maf=0):
     """Transform a list of haplotypes into a list of genotypes."""
-    if maf > 0:
-        nhaps = hap.shape[0]
-        mac = nhaps * maf
-        mac_mask = np.sum(hap, axis=0) > mac
-        hap = hap[:, mac_mask]
-        pos = pos[mac_mask]
+    nhaps = hap.shape[0]
+    mac = nhaps * maf
+    mac_mask = (np.sum(hap, axis=0) > mac) & (np.sum(hap, axis=0) < nhaps)
+    hap = hap[:, mac_mask]
+    pos = pos[mac_mask]
     gt = hap[0::2, :]+hap[1::2, :]
     return pos, gt
 
 
-def pop2seg(p1, p2, pos, hap):
+def pop2seg(p1, p2, pos, hap, maf=0):
     """Keep sites that are segregating in 2 populations."""
+    nhaps_1 = len(p1)
+    mac1 = nhaps_1 * maf
+    nhaps_2 = len(p2)
+    mac2 = nhaps_2 * maf
     gtp1 = hap[p1, :]
     gtp2 = hap[p2, :]
     # segregating in both pops
-    gtp1_mask = np.sum(gtp1, axis=0) > 0
-    gtp2_mask = np.sum(gtp2, axis=0) > 0
+    gtp1_mask = np.sum(gtp1, axis=0) > mac1 & (np.sum(gtp1, axis=0) < nhaps_1)
+    gtp2_mask = np.sum(gtp2, axis=0) > mac2 & (np.sum(gtp2, axis=0) < nhaps_2)
     loc_asc = gtp1_mask * gtp2_mask
     gtp1_seg = gtp1[:, loc_asc]
     gtp2_seg = gtp2[:, loc_asc]

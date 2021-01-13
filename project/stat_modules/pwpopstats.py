@@ -234,7 +234,7 @@ def ld_window(pos, hap, win_size, length_bp):
     return ld_wins
 
 
-def zx(p1, pos, hap, win_size, length_bp):
+def zx(p1, pos, hap, win_size, length_bp, randn=500):
     """FILET statistic.
 
     Zx = (Zn_s1 + Zn_s2)/(2*Zn_sg)
@@ -246,6 +246,13 @@ def zx(p1, pos, hap, win_size, length_bp):
     p1_ = range(p1)
     p2_ = range(p1, hap.shape[0])
     pos, h1, h2 = pop2seg(p1_, p2_, pos, hap)
+    if randn > 0:
+        try:
+            vix = np.random.choice(range(len(pos)), randn, replace=False)
+            h1 = h1[:, vix]
+            h2 = h2[:, vix]
+        except ValueError:
+            pass
     zn_sg = np.array(ld_window(pos, np.concatenate([h1, h2], axis=0), win_size, length_bp))
     # calc Zns1 & Zns2
     zn1 = np.array(ld_window(pos, h1, win_size, length_bp))

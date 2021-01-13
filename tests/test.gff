@@ -1,0 +1,111 @@
+##gff-version 3
+##genome-build University of Notre Dame AfunF3
+##sequence-region   X 1 17661987
+##sequence-region   CM012071.1 1 99479338
+##sequence-region   CM012072.1 1 93833897
+##sequence-region   RCWQ01006588.1 1 13932
+X	University of Notre Dame	chromosome	1	17661987	.	.	.	ID=X;Alias=X,CM012070
+###
+X	VectorBase	gene	12490	25713	.	+	.	ID=AFUN008177;biotype=protein_coding;description=Sidekick homolog [Source:Projected from Anopheles gambiae (AGAP000659) VB Community Annotation];version=1
+X	VectorBase	mRNA	12490	25713	.	+	.	ID=AFUN008177-RA;Parent=AFUN008177;Dbxref=UniProtKB:A0A182RPJ4;Ontology_term=GO:0005515;biotype=protein_coding;version=1
+X	VectorBase	five_prime_UTR	12490	13400	.	+	.	Parent=AFUN008177-RA
+X	VectorBase	exon	12490	13719	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E1;constitutive=1;rank=1
+X	VectorBase	CDS	13401	13719	.	+	0	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	15581	15679	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E2;constitutive=1;rank=2
+X	VectorBase	CDS	15581	15679	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	15819	15923	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E3;constitutive=1;rank=3
+X	VectorBase	CDS	15819	15923	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	16887	17762	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E4;constitutive=1;rank=4
+X	VectorBase	CDS	16887	17762	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	17838	17957	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E5;constitutive=1;rank=5
+X	VectorBase	CDS	17838	17957	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	18088	18243	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E6;constitutive=1;rank=6
+X	VectorBase	CDS	18088	18243	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	18708	18834	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E7;constitutive=1;rank=7
+X	VectorBase	CDS	18708	18834	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	18897	19384	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E8;constitutive=1;rank=8
+X	VectorBase	CDS	18897	19384	.	+	1	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	19766	23191	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E9;constitutive=1;rank=9
+X	VectorBase	CDS	19766	23191	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	23276	23554	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E10;constitutive=1;rank=10
+X	VectorBase	CDS	23276	23554	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	23622	23942	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E11;constitutive=1;rank=11
+X	VectorBase	CDS	23622	23942	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	24191	24567	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E12;constitutive=1;rank=12
+X	VectorBase	CDS	24191	24567	.	+	2	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	CDS	24664	24903	.	+	0	ID=AFUN008177-PA;Parent=AFUN008177-RA;protein_id=AFUN008177-PA
+X	VectorBase	exon	24664	25713	.	+	.	Parent=AFUN008177-RA;Name=AFUN008177-RA-E13;constitutive=1;rank=13
+X	VectorBase	three_prime_UTR	24904	25713	.	+	.	Parent=AFUN008177-RA
+###
+X	VectorBase	gene	30460	41353	.	+	.	ID=AFUN008176;biotype=protein_coding;version=1
+X	VectorBase	mRNA	30460	41353	.	+	.	ID=AFUN008176-RA;Parent=AFUN008176;Dbxref=UniParc:UPI0007D5C81B,UniProtKB:A0A182RPJ3;Ontology_term=GO:0001607,GO:0004930,GO:0007186,GO:0016021;biotype=protein_coding;version=1
+X	VectorBase	exon	30460	31159	.	+	.	Parent=AFUN008176-RA;Name=AFUN008176-RA-E1;constitutive=1;rank=1
+X	VectorBase	five_prime_UTR	30460	31159	.	+	.	Parent=AFUN008176-RA
+X	VectorBase	five_prime_UTR	33637	33882	.	+	.	Parent=AFUN008176-RA
+X	VectorBase	exon	33637	34858	.	+	.	Parent=AFUN008176-RA;Name=AFUN008176-RA-E2;constitutive=1;rank=2
+X	VectorBase	CDS	33883	34858	.	+	0	ID=AFUN008176-PA;Parent=AFUN008176-RA;protein_id=AFUN008176-PA
+X	VectorBase	exon	36595	36815	.	+	.	Parent=AFUN008176-RA;Name=AFUN008176-RA-E3;constitutive=1;rank=3
+X	VectorBase	CDS	36595	36815	.	+	2	ID=AFUN008176-PA;Parent=AFUN008176-RA;protein_id=AFUN008176-PA
+X	VectorBase	exon	38799	38919	.	+	.	Parent=AFUN008176-RA;Name=AFUN008176-RA-E4;constitutive=1;rank=4
+X	VectorBase	CDS	38799	38919	.	+	0	ID=AFUN008176-PA;Parent=AFUN008176-RA;protein_id=AFUN008176-PA
+X	VectorBase	CDS	39639	40543	.	+	2	ID=AFUN008176-PA;Parent=AFUN008176-RA;protein_id=AFUN008176-PA
+X	VectorBase	exon	39639	41353	.	+	.	Parent=AFUN008176-RA;Name=AFUN008176-RA-E5;constitutive=1;rank=5
+X	VectorBase	three_prime_UTR	40544	41353	.	+	.	Parent=AFUN008176-RA
+###
+X	VectorBase	gene	44846	49040	.	-	.	ID=AFUN008175;biotype=protein_coding;version=1
+X	VectorBase	mRNA	44846	49040	.	-	.	ID=AFUN008175-RA;Parent=AFUN008175;Dbxref=UniProtKB:A0A182RPJ2;Ontology_term=GO:0004930,GO:0007186,GO:0016021;biotype=protein_coding;version=1
+X	VectorBase	three_prime_UTR	44846	45095	.	-	.	Parent=AFUN008175-RA
+X	VectorBase	exon	44846	45125	.	-	.	Parent=AFUN008175-RA;Name=AFUN008175-RA-E7;constitutive=1;rank=7
+X	VectorBase	CDS	45096	45125	.	-	0	ID=AFUN008175-PA;Parent=AFUN008175-RA;protein_id=AFUN008175-PA
+X	VectorBase	exon	45652	45863	.	-	.	Parent=AFUN008175-RA;Name=AFUN008175-RA-E6;constitutive=1;rank=6
+X	VectorBase	CDS	45652	45863	.	-	2	ID=AFUN008175-PA;Parent=AFUN008175-RA;protein_id=AFUN008175-PA
+X	VectorBase	exon	47728	47746	.	-	.	Parent=AFUN008175-RA;Name=AFUN008175-RA-E5;constitutive=1;rank=5
+X	VectorBase	CDS	47728	47746	.	-	0	ID=AFUN008175-PA;Parent=AFUN008175-RA;protein_id=AFUN008175-PA
+X	VectorBase	exon	47773	47934	.	-	.	Parent=AFUN008175-RA;Name=AFUN008175-RA-E4;constitutive=1;rank=4
+X	VectorBase	CDS	47773	47934	.	-	0	ID=AFUN008175-PA;Parent=AFUN008175-RA;protein_id=AFUN008175-PA
+X	VectorBase	exon	48021	48132	.	-	.	Parent=AFUN008175-RA;Name=AFUN008175-RA-E3;constitutive=1;rank=3
+X	VectorBase	CDS	48021	48132	.	-	1	ID=AFUN008175-PA;Parent=AFUN008175-RA;protein_id=AFUN008175-PA
+X	VectorBase	exon	48215	48353	.	-	.	Parent=AFUN008175-RA;Name=AFUN008175-RA-E2;constitutive=1;rank=2
+X	VectorBase	CDS	48215	48353	.	-	2	ID=AFUN008175-PA;Parent=AFUN008175-RA;protein_id=AFUN008175-PA
+X	VectorBase	exon	48641	49040	.	-	.	Parent=AFUN008175-RA;Name=AFUN008175-RA-E1;constitutive=1;rank=1
+X	VectorBase	CDS	48641	49040	.	-	0	ID=AFUN008175-PA;Parent=AFUN008175-RA;protein_id=AFUN008175-PA
+###
+X	VectorBase	gene	52533	54561	.	+	.	ID=AFUN008174;biotype=protein_coding;description=amiloride-sensitive sodium channel [Source:Projected from Anopheles gambiae (AGAP000657) VB Community Annotation];version=1
+X	VectorBase	mRNA	52533	54561	.	+	.	ID=AFUN008174-RA;Parent=AFUN008174;Dbxref=UniParc:UPI0007D51880,UniProtKB:A0A182RPJ1;Ontology_term=GO:0005272,GO:0006814,GO:0016020,GO:0016021;biotype=protein_coding;version=1
+X	VectorBase	five_prime_UTR	52533	52545	.	+	.	Parent=AFUN008174-RA
+X	VectorBase	exon	52533	52646	.	+	.	Parent=AFUN008174-RA;Name=AFUN008174-RA-E1;constitutive=1;rank=1
+X	VectorBase	CDS	52546	52646	.	+	0	ID=AFUN008174-PA;Parent=AFUN008174-RA;protein_id=AFUN008174-PA
+X	VectorBase	exon	52931	53502	.	+	.	Parent=AFUN008174-RA;Name=AFUN008174-RA-E2;constitutive=1;rank=2
+X	VectorBase	CDS	52931	53502	.	+	1	ID=AFUN008174-PA;Parent=AFUN008174-RA;protein_id=AFUN008174-PA
+X	VectorBase	exon	53727	53846	.	+	.	Parent=AFUN008174-RA;Name=AFUN008174-RA-E3;constitutive=1;rank=3
+X	VectorBase	CDS	53727	53846	.	+	2	ID=AFUN008174-PA;Parent=AFUN008174-RA;protein_id=AFUN008174-PA
+X	VectorBase	exon	53915	54056	.	+	.	Parent=AFUN008174-RA;Name=AFUN008174-RA-E4;constitutive=1;rank=4
+X	VectorBase	CDS	53915	54056	.	+	2	ID=AFUN008174-PA;Parent=AFUN008174-RA;protein_id=AFUN008174-PA
+X	VectorBase	exon	54135	54244	.	+	.	Parent=AFUN008174-RA;Name=AFUN008174-RA-E5;constitutive=1;rank=5
+X	VectorBase	CDS	54135	54244	.	+	1	ID=AFUN008174-PA;Parent=AFUN008174-RA;protein_id=AFUN008174-PA
+X	VectorBase	exon	54431	54561	.	+	.	Parent=AFUN008174-RA;Name=AFUN008174-RA-E6;constitutive=1;rank=6
+X	VectorBase	CDS	54431	54561	.	+	2	ID=AFUN008174-PA;Parent=AFUN008174-RA;protein_id=AFUN008174-PA
+###
+X	VectorBase	gene	58483	64815	.	+	.	ID=AFUN008173;biotype=protein_coding;version=1
+X	VectorBase	mRNA	58483	64815	.	+	.	ID=AFUN008173-RA;Parent=AFUN008173;Dbxref=UniParc:UPI0007D68F8B,UniProtKB:A0A182RPJ0;Ontology_term=GO:0003777,GO:0005524,GO:0007018,GO:0008017;biotype=protein_coding;version=1
+X	VectorBase	exon	58483	58556	.	+	.	Parent=AFUN008173-RA;Name=AFUN008173-RA-E1;constitutive=1;rank=1
+X	VectorBase	five_prime_UTR	58483	58556	.	+	.	Parent=AFUN008173-RA
+X	VectorBase	five_prime_UTR	59934	59937	.	+	.	Parent=AFUN008173-RA
+X	VectorBase	exon	59934	60129	.	+	.	Parent=AFUN008173-RA;Name=AFUN008173-RA-E2;constitutive=1;rank=2
+X	VectorBase	CDS	59938	60129	.	+	0	ID=AFUN008173-PA;Parent=AFUN008173-RA;protein_id=AFUN008173-PA
+X	VectorBase	exon	60507	60662	.	+	.	Parent=AFUN008173-RA;Name=AFUN008173-RA-E3;constitutive=1;rank=3
+X	VectorBase	CDS	60507	60662	.	+	0	ID=AFUN008173-PA;Parent=AFUN008173-RA;protein_id=AFUN008173-PA
+X	VectorBase	exon	60838	61176	.	+	.	Parent=AFUN008173-RA;Name=AFUN008173-RA-E4;constitutive=1;rank=4
+X	VectorBase	CDS	60838	61176	.	+	0	ID=AFUN008173-PA;Parent=AFUN008173-RA;protein_id=AFUN008173-PA
+X	VectorBase	exon	62114	63127	.	+	.	Parent=AFUN008173-RA;Name=AFUN008173-RA-E5;constitutive=1;rank=5
+X	VectorBase	CDS	62114	63127	.	+	0	ID=AFUN008173-PA;Parent=AFUN008173-RA;protein_id=AFUN008173-PA
+X	VectorBase	exon	63171	63353	.	+	.	Parent=AFUN008173-RA;Name=AFUN008173-RA-E6;constitutive=1;rank=6
+X	VectorBase	CDS	63171	63353	.	+	0	ID=AFUN008173-PA;Parent=AFUN008173-RA;protein_id=AFUN008173-PA
+X	VectorBase	exon	63426	63639	.	+	.	Parent=AFUN008173-RA;Name=AFUN008173-RA-E7;constitutive=1;rank=7
+X	VectorBase	CDS	63426	63639	.	+	0	ID=AFUN008173-PA;Parent=AFUN008173-RA;protein_id=AFUN008173-PA
+X	VectorBase	exon	63704	63869	.	+	.	Parent=AFUN008173-RA;Name=AFUN008173-RA-E8;constitutive=1;rank=8
+X	VectorBase	CDS	63704	63869	.	+	2	ID=AFUN008173-PA;Parent=AFUN008173-RA;protein_id=AFUN008173-PA
+X	VectorBase	CDS	64163	64355	.	+	1	ID=AFUN008173-PA;Parent=AFUN008173-RA;protein_id=AFUN008173-PA
+X	VectorBase	exon	64163	64815	.	+	.	Parent=AFUN008173-RA;Name=AFUN008173-RA-E9;constitutive=1;rank=9
+X	VectorBase	three_prime_UTR	64356	64815	.	+	.	Parent=AFUN008173-RA
+###
