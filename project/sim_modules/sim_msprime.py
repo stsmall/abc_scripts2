@@ -258,7 +258,7 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
     demo_df = demo_dataframe
     # set mutation rate
     mut_rate = model_dt["mutation_rate"]
-    if len(mut_rate) > 1:
+    if type(mut_rate) is list:
         if len(mut_rate) == 2:
             low, high = mut_rate
             mu = np.random.uniform(low, high, sim_number)
@@ -268,7 +268,7 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
         mu = [mut_rate]
     # set recombination rate
     rec_rate = model_dt["recombination_rate"]
-    if len(rec_rate) > 1:
+    if type(rec_rate) is list:
         if len(rec_rate) == 2:
             low, high = rec_rate
             rec = np.random.uniform(low, high, sim_number)
@@ -280,10 +280,12 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
     # set Ne
     ploidy = model_dt["ploidy"]
     effective_size = model_dt["eff_size"]
-    if len(effective_size) > 1:
+    if type(effective_size) is list:
         if len(effective_size) == 2:
             low, high = effective_size
             scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
+        else:
+            scaled_Ne = effective_size
     else:
         scaled_Ne = [effective_size * ploidy]
 

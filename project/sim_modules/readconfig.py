@@ -39,10 +39,10 @@ def read_config_sims(configFile, ms_path):
         elif recomb_rate[0].isalpha():
             if os.path.exists(recomb_rate):
                 print(f"loading {recomb_rate} ...")
-                recomb_rate = np.loadtxt(recomb_rate)
+                recomb_rate = list(np.loadtxt(recomb_rate))
             else:
                 print(f"loading {os.path.join(config_path, recomb_rate)} ...")
-                recomb_rate = np.loadtxt(os.path.join(config_path, recomb_rate))
+                recomb_rate = list(np.loadtxt(os.path.join(config_path, recomb_rate)))
         elif recomb_rate[0].isdigit():
             recomb_rate = float(recomb_rate)
         else:
@@ -54,10 +54,10 @@ def read_config_sims(configFile, ms_path):
         elif mutation_rate[0].isalpha():
             if os.path.exists(mutation_rate):
                 print(f"loading {mutation_rate} ...")
-                mutation_rate = np.loadtxt(mutation_rate)
+                mutation_rate = list(np.loadtxt(mutation_rate))
             else:
                 print(f"loading {os.path.join(config_path, mutation_rate)} ...")
-                mutation_rate = np.loadtxt(os.path.join(config_path, mutation_rate))
+                mutation_rate = list(np.loadtxt(os.path.join(config_path, mutation_rate)))
         elif mutation_rate[0].isdigit():
             mutation_rate = float(mutation_rate)
         else:
