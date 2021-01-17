@@ -107,9 +107,10 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     """Calculate stats from a VCF file."""
     # if reuse_zarr is true
     if zarrpath.exists():
-        zarfile = vcfpath.parent / f"{vcfpath.stem}.zarr"
-        # load zarr
+        zarfile = zarrpath
     else:
+        # save zarr
+        zarrfile = zarrpath
         # make zarr
         # load zarr
     # load popdf

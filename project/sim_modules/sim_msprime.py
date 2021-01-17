@@ -77,7 +77,7 @@ def demo_config(params):
         if "Ne" in event:
             [pop1] = row["pops"]
             pop1 = int(pop1)
-            if type(row["value"]) is list:
+            if type(row["value"]) is list:  # TODO: check this
                 if len(row["value"]) > 1:
                     low = row["value"][0]
                     high = row["value"][1]
@@ -249,7 +249,7 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
     # declare globals
     dry_run = dryrun
     initial_model = "hudson"
-    hybrid_model = "smc_prime"  # dtwf, smc, smc_prime
+    hybrid_model = "hudson"  # dtwf, smc, smc_prime
     if dryrun:
         hybrid_switch_over = ''
     else:
@@ -258,30 +258,34 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
     demo_df = demo_dataframe
     # set mutation rate
     mut_rate = model_dt["mutation_rate"]
-    if type(mut_rate) == list:
+    if len(mut_rate) > 1:
         if len(mut_rate) == 2:
             low, high = mut_rate
             mu = np.random.uniform(low, high, sim_number)
+        else:
+            mu = mut_rate
     else:
         mu = [mut_rate]
     # set recombination rate
     rec_rate = model_dt["recombination_rate"]
-    if type(rec_rate) == list:
+    if len(rec_rate) > 1:
         if len(rec_rate) == 2:
             low, high = rec_rate
             rec = np.random.uniform(low, high, sim_number)
+        else:
+            rec = rec_rate
     else:
-        rec = np.random.exponential(rec_rate, sim_number)
+        # rec = np.random.exponential(rec_rate, sim_number)
         rec = [rec_rate]
     # set Ne
     ploidy = model_dt["ploidy"]
     effective_size = model_dt["eff_size"]
-    if type(effective_size) == list:
+    if len(effective_size) > 1:
         if len(effective_size) == 2:
             low, high = effective_size
             scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
     else:
-        scaled_Ne = effective_size * ploidy
+        scaled_Ne = [effective_size * ploidy]
 
     # set up generator fx
     event = param_df["event"].values
