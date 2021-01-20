@@ -173,20 +173,20 @@ def parse_args(args_in):
                         " vectors will be calculated")
     parser.add_argument('chr_len', type=int,
                         help="Length of the chromosome arm")
-    parser.add_argument('--window', default=1e6,
+    parser.add_argument('--window', type=float, default=1e6,
                         help="window size")
-    parser.add_argument('--step', default=None,
+    parser.add_argument('--step', type=int, default=None,
                         help="step_size")
-    parser.add_argument('--start', default=0,
+    parser.add_argument('--start', type=int, default=0,
                         help="start pos, if other than 1")
-    parser.add_argument('--stop', default=None,
+    parser.add_argument('--stop', type=int, default=None,
                         help="stop position, if other than chr_len")
-    parser.add_argument('--mask', default=None,
+    parser.add_argument('--mask', type=str, default=None,
                         help="Path to a mask file, can be bed or single list")
-    parser.add_argument('--masked_frac', default=0.25,
+    parser.add_argument('--masked_frac', type=float, default=0.25,
                         help="cut-off for skipping window based on proportion of"
                         " masked sites")
-    parser.add_argument('--gff', default=None,
+    parser.add_argument('--gff', type=str, default=None,
                         help="Path to a gff file, for selecting coding/noncoding "
                         "regions")
     parser.add_argument('--gff_filter', default=None, nargs='+',
