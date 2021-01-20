@@ -153,8 +153,8 @@ class PopSumStats:
             hap_p, pos_p, counts_p = self.split_pop(p)
             #pw_ld = ld.distrib_r2(pos_p, hap_p, intervals)  # Boitard 2015 r2
             pw_ld = ld.ld_pop_mp(pos_p, hap_p, intervals)  # momentsLD 100 snps
-            #pw_ld2 = ld.ld_pop_complete(pos_p, hap_p, intervals)  # momentsLD pw-all
             #pw_ld3 = ld.ld_pop_mb(pos_p, hap_p, intervals)  # momentsLD + Boitard 2015 selection
+            #pw_ld2 = ld.ld_pop_complete(pos_p, hap_p, intervals)  # momentsLD pw-all very slow
             stats_ls.extend(pw_ld)
 
         return stats_ls

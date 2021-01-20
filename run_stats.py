@@ -28,14 +28,18 @@ There are two main modes: sims and obs
 
 
 """
-import sys
+import allel
 import argparse
-from pathlib import Path
-import numpy as np
-import multiprocessing
 import glob
 from math import ceil
+import multiprocessing
+import numcodecs
+import numpy as np
+import pandas as pd
+from pathlib import Path
+import sys
 from tqdm import tqdm
+import zarr
 
 from project.sim_modules.readconfig import read_config_stats
 from project.stat_modules.write_stats import headers, stats_out
@@ -106,41 +110,107 @@ def run_simstats(ms_files, msexe, outpath, nprocs):
 def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     """Calculate stats from a VCF file."""
     # if reuse_zarr is true
+    breakpoint()
     if zarrpath.exists():
-        zarfile = zarrpath
-    else:
-        # save zarr
         zarrfile = zarrpath
-        # make zarr
-        # load zarr
-    # load popdf
-    # keep only inds in the popdf
-    # separate df for each population ... keep position
+    else:
+        zarrfile = zarrpath
+        allel.vcf_to_zarr(str(vcfpath), str(zarrpath), group=chrom, fields='*', alt_number=2,
+                          log=sys.stdout, compressor=numcodecs.Blosc(cname='zstd', clevel=1, shuffle=False))
 
-    ## record indexes, rejoin as (inds, pos)
-    # with open(coords_bed) OR use a step-size:
-        # s = 0
-        # e = coord_bed
-        # s = e
-        # e += coord_bed
+    # load pop info
+    panel = pd.read_csv(pops, sep='\t', usecols=['sampleID', 'population'])
 
-        # select range, loc_ranges()
-        # pos, haps, counts =
+    # load zarr
+    callset = zarr.open_group(str(zarrfile), mode='r')
+    samples = callset[f'{chrom}/samples'][:]
+    samples_list = list(samples)
+    samples_callset_index = [samples_list.index(s) for s in panel['sampleID']]
+    panel['callset_index'] = samples_callset_index
+    panel = panel.sort_values(by='callset_index')
+
+    # load gt
+    pos = allel.SortedIndex(callset[f'{chrom}/variants/POS'])
+    gt = allel.GenotypeArray(callset[f'{chrom}/calldata/GT'])
+
+    # separate gt for each population
+    ix_s = 0
+    pop_dt = {}
+    pop_ix = []
+    for i, p in enumerate(panel["population"].unique()):
+        p_ix = panel[panel["population"] == "Fun"]["callset_index"].values
+        ix_e = len(p_ix)*2 + ix_s
+        pop_ix.append(list(range(ix_s, ix_e)))
+        pop_dt[f"pop{i}"] = gt[:, p_ix]
+        ix_s += ix_e
+
+    # combine and transpose
+    gtpop = np.concatentate([pop_dt.values()])
+    hap = gtpop.to_haplotypes()
+    haps = hap.T
+
+
+    # prep progress bar
+    ln_count = 0
+    with open(coord_bed, 'r') as cb:
+        for line in cb:
+            if not line.startswith("#"):
+                ln_count += 1
+    progressbar = tqdm.tqdm(total=ln_count, desc="stats", unit='window')
+
+    # update stats_dt
 
 
 
+    # write headers
+    outfile = outpath.parent / f"{outpath.stem}.Obs.pop_stats.txt"
+    pops_outfile = open(outfile, 'w')
+    pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt)
+    # calc stats
+    stat_mat = np.zeros([ln_count, header_len])
+    with open(coord_bed, 'r') as cb:
+        for line in cb:
+            progressbar.update(1)
+            cb_lin = line.split()
+            chrom = cb_lin[0]
+            start = int(cb_lin[1])
+            stop = int(cb_lin[2])
+            len_bp = stop - start
+            stats_dt["length_bp"] = len_bp
+            sites = int(cb_lin[3])
+            # select range, loc_ranges()
+            pos_ix = allel.loc_ranges()
+            pos_t = pos[pos_ix]
+            haps_t = haps[:, pos_ix]
+            counts_t = np.sum(haps_t)
+            # run stats
+            stats_ls = []
+            popsumstats = PopSumStats(pos_t, haps_t, counts_t, stats_dt)
+            for stat in stats_dt["calc_stats"]:
+                stat_fx = getattr(popsumstats, stat)
+                try:
+                    ss = stat_fx()
+                    # print(f"{stat} =  {len(ss)}")
+                except IndexError:
+                    ss = [np.nan] * len(stats_dt["pw_quants"])
+                stats_ls.extend(ss)
+            # save stats here to get a single mean/median
+            stat_mat[i, :] = stats_ls
+            i += 1
+        # write stats out
+        # for stat in stats_ls:
+        #     rd = [round(num, 5) for num in stat]
+        #     stats_str = "\t".join(map(str, rd))
+        #     pops_outfile.write(f"{chrom}\t{start}\t{stop}\t{sites}\t{stat_str}\n")
+    progressbar.close()
+    pops_outfile.close()
 
-    # 1) apply gff_file & filter use locate_range
-    #     -subset of filtered gt and pos
-    # 2) turn into hap/pos/counts
-    # 3) pass to stats in coordinate chunks
-    #     using pos > X > pos
-    #     check that same coordinate range has less than 25% missing sites from maskbed
-    #     ADIVISE doing a SLIDING WINDOW here to better find locations that meet all criteria
-    # 4) print stats out to file
-    # chrom start stop sites STATS
+    return outfile
 
-    return None
+
+def plot_obs_stats(stats_df):
+    pass
+
 
 def parse_args(args_in):
     """Parse args.
@@ -191,7 +261,7 @@ def parse_args(args_in):
                           help="path to config stats file, see examples")
     parser_b.add_argument('--coords_bed', required=True,
                           help="Path to a bed file of coordinates for stats")
-    parser_b.add_argument('--zarr_path', type=str
+    parser_b.add_argument('--zarr_path', type=str,
                           help="Path to a zarr file. If exists will reuse if not"
                           " it will build one at that location")
     parser_b.add_argument('-o', "--outfile", default="./",
@@ -221,7 +291,7 @@ def main():
         configFile = argsDict["configFile"]
         pops = argsDict["pops_file"]
         coord_bed = argsDict["coords_bed"]
-        zarrpath = Path(argsDict["coords_bed"])
+        zarrpath = Path(argsDict["zarr_path"])
         outpath = Path(argsDict["outfile"])
     # =========================================================================
     #  Config parser
@@ -240,7 +310,11 @@ def main():
         run_simstats(ms_files, ms, outpath, nprocs)
 
     elif argsDict["mode"] == "obs":
-        calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath)
+        outfile = calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath)
+        pdplot = False
+        if pdplot:
+            stats_df = pd.read_csv(outfile)
+            plot_obs_stats(stats_df)
 
 
 if __name__ == "__main__":

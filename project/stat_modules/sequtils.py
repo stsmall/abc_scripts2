@@ -252,8 +252,8 @@ def pop2seg(p1, p2, pos, hap, maf=0):
     gtp1 = hap[p1, :]
     gtp2 = hap[p2, :]
     # segregating in both pops
-    gtp1_mask = np.sum(gtp1, axis=0) > mac1 & (np.sum(gtp1, axis=0) < nhaps_1)
-    gtp2_mask = np.sum(gtp2, axis=0) > mac2 & (np.sum(gtp2, axis=0) < nhaps_2)
+    gtp1_mask = (np.sum(gtp1, axis=0) > mac1) & (np.sum(gtp1, axis=0) < nhaps_1)
+    gtp2_mask = (np.sum(gtp2, axis=0) > mac2) & (np.sum(gtp2, axis=0) < nhaps_2)
     loc_asc = gtp1_mask * gtp2_mask
     gtp1_seg = gtp1[:, loc_asc]
     gtp2_seg = gtp2[:, loc_asc]

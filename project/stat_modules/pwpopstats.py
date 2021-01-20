@@ -248,9 +248,10 @@ def zx(p1, pos, hap, win_size, length_bp, randn=500):
     pos, h1, h2 = pop2seg(p1_, p2_, pos, hap)
     if randn > 0:
         try:
-            vix = np.random.choice(range(len(pos)), randn, replace=False)
+            vix = np.sort(np.random.choice(range(len(pos)), randn, replace=False))
             h1 = h1[:, vix]
             h2 = h2[:, vix]
+            pos = pos[vix]
         except ValueError:
             pass
     zn_sg = np.array(ld_window(pos, np.concatenate([h1, h2], axis=0), win_size, length_bp))

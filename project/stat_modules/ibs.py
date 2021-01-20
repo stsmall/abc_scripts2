@@ -63,7 +63,7 @@ def ibs_quantiles_from_data(m, pos, hap, prob, dmax, data_type=1, moments=False)
     d = np.minimum(d, dmax*np.ones(shape=len(d), dtype='int32'))
     # computes the quantiles and/or the moments of this sample
     if moments:
-        moms=-np.ones(shape=4)
+        moms = -np.ones(shape=4)
         moms[0] = np.mean(d[1:])
         moms[1] = np.std(d[1:])
         #  mom3:skewness, mom4:kurtosis

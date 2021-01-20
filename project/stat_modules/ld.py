@@ -88,9 +88,10 @@ def ld_pop2(p1, pos, hap, quants, maf=0.05, randn=100):
     pos, gt1, gt2 = pop2seg(p1_, p2_, pos, gt)
     if randn > 0:
         try:
-            vix = np.random.choice(range(len(pos)), randn, replace=False)
+            vix = np.sort(np.random.choice(range(len(pos)), randn, replace=False))
             gt1 = gt1[:, vix]
             gt2 = gt2[:, vix]
+            pos = pos[vix]
         except ValueError:
             pass
     # L1*L2 where Li is number of snps in gtpop{i}_seg
@@ -208,7 +209,7 @@ def ld_pop_mp(pos, hap, intervals, maf=0.05, randn=100):
     for dmin, dmax in intervals:
         xx = np.where((pwdist_mat >= dmin) & (pwdist_mat <= dmax))
         try:
-            rn = np.random.choice(range(len(xx[0])), randn, replace=False)
+            rn = np.sort(np.random.choice(range(len(xx[0])), randn, replace=False))
             subset_i = xx[0][rn]
             subset_j = xx[1][rn]
         except ValueError:
