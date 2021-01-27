@@ -32,19 +32,19 @@ My goal is to build a customizable set of scripts to allow demographic inference
  * [momentsLD](https://bitbucket.org/simongravel/moments/src/LD/moments/) *(optional)*
 
 ### examples
-**test model**
+**test model**  
 `run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msp_test --dryrun`  
 `run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msp_test --ms scrm --dryrun`  
 
 **sims and stats**  
 `run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msp_test --stats_cfg examples/stats.example.cfg`  
-`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out scrm_test --ms scrm --stats_cfg examples/stats.example.cfg`
+`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out scrm_test --ms scrm --stats_cfg examples/stats.example.cfg`  
 `run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out discoal_test --ms discoal --stats_cfg examples/stats.example.cfg`  
 `run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msbgs_test --ms msbgs --stats_cfg examples/stats.example.cfg`  
 
 **write sims to file, then calc stats from file**  
-`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out scrm.sims.msout --ms scrm`
-`run_stats.py sims scrm.sims.msout -cfg examples/stats_example.cfg --outfile scrm.sims.out --ms scrm` 
+`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out scrm.sims.msout --ms scrm`  
+`run_stats.py sims scrm.sims.msout -cfg examples/stats_example.cfg --outfile scrm.sims.out --ms scrm`  
 
 **get obs stats**  
 `utils/make_coordsfile.py 3 998670 10000 1000 --gff tests/test.gff --gff_filter intergenic`
