@@ -169,7 +169,7 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     # calc stats
     chrom_ls = []
     i = 0
-    stat_mat = np.zeros([ln_count, len(header_ls)])
+    stat_mat = np.zeros([ln_count, len(header_ls)-1])
     with open(coord_bed, 'r') as cb:
         for line in cb:
             if not line.startswith("chrom"):
