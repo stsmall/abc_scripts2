@@ -1,4 +1,4 @@
-# abc_scripts2
+# Scripts for Approximate Bayesian Computation in population genomics  
 Refactoring of abc_scripts.
 My goal is to build a customizable set of scripts to allow demographic inference under ABC. Given some of the known affects of linked selection (BGS and Positive) on patterns of polymorphism, I had added the msbgs program. I have also added a model of sequencing error (Jay et al. 2019) and the option to use the MMC in msprime.
 
