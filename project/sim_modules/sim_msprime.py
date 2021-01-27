@@ -1,21 +1,22 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Wed Dec 16 20:32:28 2020
 @author: Scott T. Small
 
 """
+import multiprocessing
+from itertools import product
+from math import ceil
+
 import msprime as msp
 import numpy as np
 import pandas as pd
-import multiprocessing
-from math import ceil
 from tqdm import tqdm
-from itertools import product
+
 from project.sim_modules.readconfig import read_config_stats
-from project.stat_modules.write_stats import headers, stats_out
 from project.stat_modules.sequtils import read_trees
 from project.stat_modules.sumstats import PopSumStats
+from project.stat_modules.write_stats import headers, stats_out
 
 
 def pop_config():
@@ -35,10 +36,8 @@ def pop_config():
     """
     sample_sizes = model_dt["sampleSize"]
     init_sizes = [size * ploidy for size in model_dt["initialSize"]]
-    pops_ls = []
-    for ss, init in zip(sample_sizes, init_sizes):
-        pops_ls.append(msp.PopulationConfiguration(sample_size=ss, initial_size=init))
-    return pops_ls
+
+    return [msp.PopulationConfiguration(sample_size=ss, intitial_size=int) for ss, init in zip(sample_sizes, init_sizes)]
 
 
 def demo_config(params):
@@ -71,13 +70,12 @@ def demo_config(params):
     # "time": float, "event": [Ne, ej, tes, tm], "pop": [0-9], "value": float
     for time, row in demo_param_df_srt.iterrows():
         event = row["event"]
-        if hybrid_switch_over:
-            if time > hybrid_switch_over:  # add hybrid switch-over here
-                dem_list.append(msp.SimulationModelChange(time=time, model=hybrid_model))
+        if hybrid_switch_over and time >= hybrid_switch_over:  # add hybrid switch-over here
+            dem_list.append(msp.SimulationModelChange(time=time, model=hybrid_model))
         if "Ne" in event:
             [pop1] = row["pops"]
             pop1 = int(pop1)
-            if type(row["value"]) is list:  # TODO: check this
+            if type(row["value"]) is list:
                 if len(row["value"]) > 1:
                     low = row["value"][0]
                     high = row["value"][1]
@@ -106,7 +104,7 @@ def demo_config(params):
             pop1, pop2 = row["pops"]
             pop1 = int(pop1)
             pop2 = int(pop2)
-            if not any(i in sourcelist for i in [pop1, pop2]):
+            if all(i not in sourcelist for i in [pop1, pop2]):
                 prop = row["value"]
                 dem_list.append(msp.MassMigration(time=time, source=pop2, destination=pop1, proportion=prop))
         elif "ea" in event:
@@ -115,7 +113,7 @@ def demo_config(params):
             pop1 = int(pop1)
             pop2 = int(pop2)
             pop3 = int(pop3)
-            if not any(i in sourcelist for i in [pop1, pop2, pop3]):
+            if all(i not in sourcelist for i in [pop1, pop2, pop3]):
                 prop = row["value"]
                 dem_list.append(msp.MassMigration(time=time, source=pop2, destination=pop1, proportion=prop))
                 dem_list.append(msp.MassMigration(time=time, source=pop3, destination=pop1, proportion=prop))
@@ -124,7 +122,7 @@ def demo_config(params):
             pop1 = int(pop1)
             pop2 = int(pop2)
             mig = row["value"]
-            if not any(i in sourcelist for i in [pop1, pop2]):
+            if all(i not in sourcelist for i in [pop1, pop2]):
                 if "ms" in event:  # set as symmetrical
                     dem_list.append(msp.MigrationRateChange(time=time, rate=mig, matrix_index=(pop1, pop2)))
                     dem_list.append(msp.MigrationRateChange(time=time, rate=mig, matrix_index=(pop2, pop1)))
@@ -188,9 +186,8 @@ def run_simulation(param_df):
                 ss = [np.nan] * len(stats_dt["pw_quants"])
             stats_ls.extend(ss)
         stat_mat[i, :] = stats_ls
-    pop_stats_arr = np.nanmean(stat_mat, axis=0)
 
-    return pop_stats_arr
+    return np.nanmean(stat_mat, axis=0)
 
 
 def checkDemo(pops, demo_events):
@@ -203,9 +200,9 @@ def checkDemo(pops, demo_events):
     dd.print_history()
 
 
-def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
-                     outfile, nprocs, stats_config, dryrun):
-    """Main code for simulating msprime
+def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
+                     outfile: str, nprocs: int, stats_config: str, dryrun: bool):
+    """Run code for simulating msprime.
 
     Parameters
     ----------
@@ -230,33 +227,31 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
 
     """
     # =========================================================================
-    #  Globals
+    #  Globals for model params
     # =========================================================================
-    global demo_df
+    # set info dicts
     global model_dt
-    global mu
-    global rec
-    global ploidy
-    global scaled_Ne
-    global initial_model
-    global hybrid_model
-    global hybrid_switch_over
-    global dry_run
-    global stats_dt
-    global header_len
-    global header
-    # =========================================================================
-    # declare globals
-    dry_run = dryrun
-    initial_model = "hudson"
-    hybrid_model = "hudson"  # dtwf, smc, smc_prime
-    if dryrun:
-        hybrid_switch_over = ''
-    else:
-        hybrid_switch_over = ''
     model_dt = model_dict
+    global demo_df
     demo_df = demo_dataframe
+
+    # set dryrun
+    global dry_run
+    dry_run = dryrun
+
+    # set models and switching
+    global initial_model
+    initial_model = "hudson"
+    global hybrid_model
+    hybrid_model = "hudson"  # dtwf, smc, smc_prime
+    global hybrid_switch_over
+    if dryrun:
+        hybrid_switch_over = ''  # demo debug does not handle hybrid models
+    else:
+        hybrid_switch_over = ''  # int of gens, e.g., 500
+
     # set mutation rate
+    global mu
     mut_rate = model_dt["mutation_rate"]
     if type(mut_rate) is list:
         if len(mut_rate) == 2:
@@ -266,7 +261,9 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
             mu = mut_rate
     else:
         mu = [mut_rate]
+
     # set recombination rate
+    global rec
     rec_rate = model_dt["recombination_rate"]
     if type(rec_rate) is list:
         if len(rec_rate) == 2:
@@ -277,8 +274,13 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
     else:
         # rec = np.random.exponential(rec_rate, sim_number)
         rec = [rec_rate]
-    # set Ne
+
+    # set ploidy
+    global ploidy
     ploidy = model_dt["ploidy"]
+
+    # set effective pop size
+    global scaled_Ne
     effective_size = model_dt["eff_size"]
     if type(effective_size) is list:
         if len(effective_size) == 2:
@@ -289,7 +291,10 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
     else:
         scaled_Ne = [effective_size * ploidy]
 
-    # set up generator fx
+    # =========================================================================
+    #  Main simulations
+    # =========================================================================
+    # set up generator fx for MP
     event = param_df["event"].values
     pops = param_df["pops"].values
     time_arr = list(zip(*param_df["time"].values))
@@ -302,6 +307,10 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
         nprocs = multiprocessing.cpu_count()
 
     # perform sims
+    global stats_dt
+    global header_len
+    global header
+
     if dry_run:
         for param in param_gen:
             run_simulation(param)
@@ -317,10 +326,9 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
             for param in tqdm(param_gen):
                 pop_stats_arr = run_simulation(param)
                 pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
-            pops_outfile.close()
         else:
             # chunk and MP
-            nk = nprocs * 10
+            nk = nprocs * 10  # tricky, how many jobs for each processor
             chunk_list = [param_gen[i:i + nk] for i in range(0, len(param_gen), nk)]
             chunksize = ceil(nk/nprocs)
             pool = multiprocessing.Pool(nprocs)
@@ -329,6 +337,6 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number,
                 pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
                 print(i)
             pool.close()
-            pops_outfile.close()
+        pops_outfile.close()
     else:
         print("No stats file given with msprime")

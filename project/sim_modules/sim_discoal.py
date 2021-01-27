@@ -1,33 +1,35 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Wed Dec 16 20:32:28 2020
 @author: Scott T. Small
 
 """
+import multiprocessing
 import subprocess
+from math import ceil
+
 import numpy as np
 import pandas as pd
-import multiprocessing
-from math import ceil
 from tqdm import tqdm
+
 from project.sim_modules.readconfig import read_config_stats
-from project.stat_modules.write_stats import headers, stats_out
 from project.stat_modules.sequtils import read_ms_stream
 from project.stat_modules.sumstats import PopSumStats
+from project.stat_modules.write_stats import headers, stats_out
 
 
 def selection_parse(ms_dt):
-    """Parse selection dict for discoal.
+    """Parse selection parameters.
 
     Parameters
     ----------
-    model_dict : TYPE
+    ms_dt : TYPE
         DESCRIPTION.
 
     Returns
     -------
-    None.
+    sel_list : list
+        parameters in discoal syntax
 
     """
     ne0 = ms_dt["Ne0"]
@@ -126,22 +128,17 @@ def selection_parse(ms_dt):
         pass
     if hide:
         sel_list.append("-h")
+
     return sel_list
 
 
 def sim_syntax():
-    """Create parameters for specific model.
+    """Create discoal syntax.
 
-    Parameters
-    ----------
-    model_dict : TYPE
-        DESCRIPTION.
-    ms_path : str
-        path to simulator
     Returns
     -------
-    ms_dict : Dict
-        BOO
+    ms_dt : Dict
+        contains syntax in discoal format
 
     """
     ms_dt = {}
@@ -189,16 +186,14 @@ def sim_syntax():
     return ms_dt
 
 
-def model_discoal(params, ne0):
-    """Create model with no migration for discoal.
+def model_discoal(params, ne0: int):
+    """Parse model into syntax.
 
     Parameters
     ----------
-    ord_events : TYPE
+    params : pd.DataFrame
         DESCRIPTION.
-    model_dict : TYPE
-        DESCRIPTION.
-    ms_dict : TYPE
+    ne0 : int
         DESCRIPTION.
 
     Returns
@@ -245,7 +240,7 @@ def model_discoal(params, ne0):
             pop1 = int(pop1)
             pop2 = int(pop2)
             pop3 = pop1
-            if not any(i in sourcelist for i in [pop1, pop2]):
+            if all(i not in sourcelist for i in [pop1, pop2]):
                 prop = row["value"]
                 dem_list.append(f"-ea {new_time} {pop1} {pop2} {pop3} {prop}")
         elif "ea" in event:
@@ -254,7 +249,7 @@ def model_discoal(params, ne0):
             pop1 = int(pop1)
             pop2 = int(pop2)
             pop3 = int(pop3)
-            if not any(i in sourcelist for i in [pop1, pop2, pop3]):
+            if all(i not in sourcelist for i in [pop1, pop2, pop3]):
                 prop = row["value"]
                 dem_list.append(f"-ea {new_time} {pop1} {pop2} {pop3} {prop}")
         elif "m" in event:
@@ -262,7 +257,7 @@ def model_discoal(params, ne0):
             pop1 = int(pop1)
             pop2 = int(pop2)
             mig1 = row["value"]*4*ne0
-            if not any(i in sourcelist for i in [pop1, pop2]):
+            if all(i not in sourcelist for i in [pop1, pop2]):
                 if "ms" in event:  # set as symmetrical
                     mig2 = row["value"]*4*ne0
                     dem_list.append(f"-m {new_time} {pop1} {pop2} {mig1}")
@@ -274,27 +269,19 @@ def model_discoal(params, ne0):
 
 
 def run_simulation(params):
-    """Create a single instance of a call to simulator.
+    """Run sims and capture output for stats.
 
     Parameters
     ----------
-    model_dict: Dict
-        contains info from config file
-    demo_dict: Dict
-        dict of pop sizes and times
-    par_dict: Dict
-        generator of distributions
-    event_dict: List
-        list of demographic events, column 2 in model
-    ms_path: str
-        location of ms exe
+    params : list
+        DESCRIPTION.
 
     Returns
     -------
-    mscmd: str
-        full call to ms/msmove
-    params: list
-        list of random parameters for that simulation
+    pop_stats_arr : np.array
+        calculated summary stats
+    ms_cmd : str
+        command line to print to file, later run with bash
 
     """
     # rescale
@@ -360,24 +347,30 @@ def run_simulation(params):
         return ms_cmd
 
 
-def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number, outfile, nprocs, stats_config, dryrun):
-    """Main simulate code for discoal.
+def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number,
+                     outfile, nprocs, stats_config, dryrun):
+    """
+    Main simulate.
 
     Parameters
     ----------
-    model_dict : TYPE
-        DESCRIPTION.
-    demo_df : TYPE
-        DESCRIPTION.
-    param_df : TYPE
-        DESCRIPTION.
     ms_path : TYPE
         DESCRIPTION.
-    sim_path : TYPE
+    model_dict : TYPE
+        DESCRIPTION.
+    demo_dataframe : TYPE
+        DESCRIPTION.
+    param_df : TYPE
         DESCRIPTION.
     sim_number : TYPE
         DESCRIPTION.
     outfile : TYPE
+        DESCRIPTION.
+    nprocs : TYPE
+        DESCRIPTION.
+    stats_config : TYPE
+        DESCRIPTION.
+    dryrun : TYPE
         DESCRIPTION.
 
     Returns
@@ -386,35 +379,27 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number, 
 
     """
     # =========================================================================
-    #  Globals
+    #  Globals for model params
     # =========================================================================
     global ms_exe
-    global demo_df
-    global model_dt
-    global mu
-    global rec
-    global ploidy
-    global scaled_Ne
-    global nhaps
-    global sample_sizes
-    global npops
-    global init_sizes
-    global dry_run
-
-    global statsconfig
-    global stats_dt
-    global header_len
-    global header
-    # =========================================================================
-    # declare globals
     ms_exe = ms_path
-    dry_run = dryrun
-    model_dt = model_dict
+    global demo_df
     demo_df = demo_dataframe
+    global model_dt
+    model_dt = model_dict
+    global dry_run
+    dry_run = dryrun
+
+    # model pops
+    global nhaps
     nhaps = sum(model_dt["sampleSize"])
+    global sample_sizes
     sample_sizes = model_dt["sampleSize"]
+    global npops
     npops = len(sample_sizes)
+
     # set mutation rate
+    global mu
     mut_rate = model_dt["mutation_rate"]
     if type(mut_rate) is list:
         if len(mut_rate) == 2:
@@ -424,7 +409,9 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number, 
             mu = mut_rate
     else:
         mu = [mut_rate]
+
     # set recombination rate
+    global rec
     rec_rate = model_dt["recombination_rate"]
     if type(rec_rate) is list:
         if len(rec_rate) == 2:
@@ -435,9 +422,13 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number, 
     else:
         # rec = np.random.exponential(rec_rate, sim_number)
         rec = [rec_rate]
-    # set Ne
+
+    # set effective population size
+    global ploidy
     ploidy = model_dt["ploidy"]
+    global init_sizes
     init_sizes = [size * ploidy for size in model_dt["initialSize"]]
+    global scaled_Ne
     effective_size = model_dt["eff_size"]
     if type(effective_size) is list:
         if len(effective_size) == 2:
@@ -448,18 +439,27 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number, 
     else:
         scaled_Ne = [effective_size * ploidy]
 
-    # set up generator fx
+    # =========================================================================
+    #  Main simulations
+    # =========================================================================
+    # set up generator fx for MP
     event = param_df["event"].values
     pops = param_df["pops"].values
     time_arr = list(zip(*param_df["time"].values))
     value_arr = list(zip(*param_df["value"].values))
     param_gen = ({"time": time_arr[i], "event": event, "pops": pops, "value": value_arr[i]} for i in range(sim_number))
     param_gen = list(param_gen)
+
     # check nprocs
     if nprocs > multiprocessing.cpu_count():  # check that there are not more requested than available
         print("not {nprocs} processors available, setting to {multiprocessing.cpu_count()}")
         nprocs = multiprocessing.cpu_count()
+
+    global statsconfig
     statsconfig = ''
+    global stats_dt
+    global header_len
+    global header
     # perform sims
     if dry_run:
         for param in param_gen:

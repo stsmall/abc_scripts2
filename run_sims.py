@@ -4,49 +4,51 @@ Created on Tue Feb  4 13:31:12 2020.
 @author: Scott T. Small.
 
 Main script for generating simulations for ABC and ML training.
-depends: sim_models.py, sim_params.py
 
 Example
 -------
 
-abc_sims.py -cfg examples/example.cfg -i 100000 --ms msmove --out test
-
-generates a file with a random name that has 5,000 lines. each line is a call
-to msmove under the CONFIG specifications.
+python run_sims.py -cfg docs/examples/example.sims.cfg -m docs/examples/model.2test.txt
+    -i 10 --out test --stats_config docs/examples/example.stats.cfg --nprocs 1
 
 Notes
 -----
 This relies on a config file and a model file. It can also use a distribution
-of pi and rho (the population recombination rate). See the github for examples.
+of mu and recombination rate.
 
 
 """
-import sys
 import argparse
 import os
+import sys
+
 import pandas as pd
-from project.sim_modules.readconfig import read_config_sims
+
 from project.sim_modules.models import parse_model
+from project.sim_modules.readconfig import read_config_sims
 from project.sim_modules.sim_discoal import simulate_discoal
 from project.sim_modules.sim_msbgs import simulate_msbgs
 from project.sim_modules.sim_msprime import simulate_msprime
 from project.sim_modules.sim_scrm import simulate_scrm
 
 
-def write_params(param_df, outfile, sim_number, dryrun):
+def write_params(param_df, outfile: str, sim_number: int, dryrun: bool):
     """Write priors to file.
 
     Parameters
     ----------
-    eventkey_dict : TYPE
+    param_df : pd.DataFrame
         DESCRIPTION.
-    params_dict : TYPE
+    outfile : str
+        DESCRIPTION.
+    sim_number : int
+        DESCRIPTION.
+    dryrun : bool
         DESCRIPTION.
 
     Returns
     -------
-    priors_str : TYPE
-        DESCRIPTION.
+    None.
 
     """
     headers = []
@@ -64,7 +66,8 @@ def write_params(param_df, outfile, sim_number, dryrun):
     for tbi in param_df.itertuples():
         param_ls.append(tbi.time)
         param_ls.append(tbi.value)
-    df = pd.DataFrame(list(zip(*param_ls)), index=range(sim_number), columns=m_ix)
+    df = pd.DataFrame(list(zip(*param_ls)),
+                      index=range(sim_number), columns=m_ix)
 
     if dryrun:
         print(f"{df.describe()}\n\n")
@@ -106,7 +109,7 @@ def parse_args(args_in):
                         help="run debugger and plot priors")
     parser.add_argument("--stats_config", type=str, default=None,
                         help="config file for calc stats on the fly")
-    return(parser.parse_args(args_in))
+    return parser.parse_args(args_in)
 
 
 def main():
@@ -143,20 +146,24 @@ def main():
     demo_df, param_df = parse_model(model_file, sim_number)
     if priors_df:
         assert os.path.exists(priors_df), "no priors file found"
-        param_df = pd.read_csv(priors_df, header=[0, 1], index_col=0, skipinitialspace=True)
+        param_df = pd.read_csv(
+            priors_df, header=[0, 1], index_col=0, skipinitialspace=True)
     else:
         # write priors
         priors_outfile = f"{sim_path}"
         write_params(param_df, priors_outfile, sim_number, dry_run)
-
     if "discoal" in ms_path:
-        simulate_discoal(ms_path, model_dt, demo_df, param_df, sim_number, sim_path, nprocs, stats_config, dry_run)
+        simulate_discoal(ms_path, model_dt, demo_df, param_df, sim_number,
+                         sim_path, nprocs, stats_config, dry_run)
     elif "msbgs" in ms_path:
-        simulate_msbgs(model_dt, demo_df, param_df, ms_path, sim_path, sim_number, outfile)
+        simulate_msbgs(model_dt, demo_df, param_df, ms_path,
+                       sim_path, sim_number, outfile)
     elif "scrm" in ms_path:
-        simulate_scrm(ms_path, model_dt, demo_df, param_df, sim_number, sim_path, nprocs, stats_config, dry_run, args.approx)
+        simulate_scrm(ms_path, model_dt, demo_df, param_df, sim_number,
+                      sim_path, nprocs, stats_config, dry_run, args.approx)
     elif "msprime" in ms_path:
-        simulate_msprime(model_dt, demo_df, param_df, sim_number, sim_path, nprocs, stats_config, dry_run)
+        simulate_msprime(model_dt, demo_df, param_df, sim_number,
+                         sim_path, nprocs, stats_config, dry_run)
 
 
 if __name__ == "__main__":

@@ -110,7 +110,6 @@ def run_simstats(ms_files, msexe, outpath, nprocs):
 def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     """Calculate stats from a VCF file."""
     # if reuse_zarr is true
-    breakpoint()
     if zarrpath.exists():
         zarrfile = zarrpath
     else:
@@ -138,70 +137,77 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     pop_dt = {}
     pop_ix = []
     for i, p in enumerate(panel["population"].unique()):
-        p_ix = panel[panel["population"] == "Fun"]["callset_index"].values
+        p_ix = panel[panel["population"] == p]["callset_index"].values
         ix_e = len(p_ix)*2 + ix_s
         pop_ix.append(list(range(ix_s, ix_e)))
-        pop_dt[f"pop{i}"] = gt[:, p_ix]
+        pop_dt[f"pop{i}"] = gt.take(p_ix, axis=1).to_haplotypes()
         ix_s += ix_e
 
     # combine and transpose
-    gtpop = np.concatentate([pop_dt.values()])
-    hap = gtpop.to_haplotypes()
-    haps = hap.T
-
+    hap_pop = np.concatenate(list(pop_dt.values()), axis=1)
+    haps = hap_pop.T
 
     # prep progress bar
     ln_count = 0
     with open(coord_bed, 'r') as cb:
         for line in cb:
-            if not line.startswith("#"):
+            if not line.startswith("chrom"):
                 ln_count += 1
-    progressbar = tqdm.tqdm(total=ln_count, desc="stats", unit='window')
+    progressbar = tqdm(total=ln_count, desc="stats", unit='window')
 
     # update stats_dt
-
-
+    stats_dt["num_haps"] = haps.shape[0]
+    stats_dt["pop_config"] = pop_ix
+    stats_dt["length_bp"] = int(line.split()[-1])  # may be shorter than expected due to last window
+    stats_dt["reps"] = ln_count
 
     # write headers
     outfile = outpath.parent / f"{outpath.stem}.Obs.pop_stats.txt"
     pops_outfile = open(outfile, 'w')
-    pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt)
+    pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt, obs=True)
+
     # calc stats
-    stat_mat = np.zeros([ln_count, header_len])
+    chrom_ls = []
+    i = 0
+    stat_mat = np.zeros([ln_count, len(header_ls)])
     with open(coord_bed, 'r') as cb:
         for line in cb:
-            progressbar.update(1)
-            cb_lin = line.split()
-            chrom = cb_lin[0]
-            start = int(cb_lin[1])
-            stop = int(cb_lin[2])
-            len_bp = stop - start
-            stats_dt["length_bp"] = len_bp
-            sites = int(cb_lin[3])
-            # select range, loc_ranges()
-            pos_ix = allel.loc_ranges()
-            pos_t = pos[pos_ix]
-            haps_t = haps[:, pos_ix]
-            counts_t = np.sum(haps_t)
-            # run stats
-            stats_ls = []
-            popsumstats = PopSumStats(pos_t, haps_t, counts_t, stats_dt)
-            for stat in stats_dt["calc_stats"]:
-                stat_fx = getattr(popsumstats, stat)
+            if not line.startswith("chrom"):
+                cb_lin = line.split()
+                chrom = cb_lin[0]
+                chrom_ls.append(chrom)
+                start = int(cb_lin[1])
+                stop = int(cb_lin[2])
+                len_bp = stop - start
+                stats_dt["length_bp"] = len_bp
+                sites = int(cb_lin[3])
                 try:
-                    ss = stat_fx()
-                    # print(f"{stat} =  {len(ss)}")
-                except IndexError:
-                    ss = [np.nan] * len(stats_dt["pw_quants"])
-                stats_ls.extend(ss)
-            # save stats here to get a single mean/median
-            stat_mat[i, :] = stats_ls
-            i += 1
-        # write stats out
-        # for stat in stats_ls:
-        #     rd = [round(num, 5) for num in stat]
-        #     stats_str = "\t".join(map(str, rd))
-        #     pops_outfile.write(f"{chrom}\t{start}\t{stop}\t{sites}\t{stat_str}\n")
+                    pos_ix = pos.locate_range(start, stop)
+                except KeyError:
+                    continue
+                pos_t = pos[pos_ix]
+                haps_t = haps[:, pos_ix]
+                counts_t = haps_t.sum(axis=0).astype(int)
+                # run stats
+                stats_ls = [chrom, start, stop, sites]
+                popsumstats = PopSumStats(pos_t, haps_t, counts_t, stats_dt)
+                for stat in stats_dt["calc_stats"]:
+                    stat_fx = getattr(popsumstats, stat)
+                    try:
+                        ss = stat_fx()
+                        # print(f"{stat} =  {len(ss)}")
+                    except IndexError:
+                        ss = [np.nan] * len(stats_dt["pw_quants"])
+                    stats_ls.extend(ss)
+                stat_mat[i, :] = stats_ls
+                i += 1
+                progressbar.update()
+    # write stats out
+    for stat in range(stat_mat.shape[0]):
+        rd = [round(num, 5) for num in stat_mat[stat, :]]
+        rd[0] = chrom_ls[stat]
+        stats_str = "\t".join(map(str, rd))
+        pops_outfile.write(f"{stats_str}\n")
     progressbar.close()
     pops_outfile.close()
 
@@ -238,7 +244,8 @@ def parse_args(args_in):
     parser_a.set_defaults(mode='sim')
     # parser_a._positionals.title = "required arguments"
     parser_a.add_argument('ms_file', help="path to simulation output file"
-                          "must be same format used by Hudson\'s ms")
+                          "must be same format used by Hudson\'s ms. Can be "
+                          "a directory of files but the suffix needs to be .msout")
     parser_a.add_argument('-cfg', "--configFile",
                           help="path to config file, see examples")
     parser_a.add_argument("--ms", type=str, required=True,
@@ -281,7 +288,7 @@ def main():
     if argsDict["mode"] == "sim":
         mspath = Path(argsDict["ms_file"])
         configFile = argsDict["configFile"]
-        ms = argsDict["ms"]
+        msexe = argsDict["ms"]
         outpath = Path(argsDict["outfile"])
         nprocs = argsDict["nprocs"]
 
@@ -307,7 +314,7 @@ def main():
             ms_files = list(mspath.glob("*.msout"))
         else:
             ms_files = [mspath]
-        run_simstats(ms_files, ms, outpath, nprocs)
+        run_simstats(ms_files, msexe, outpath, nprocs)
 
     elif argsDict["mode"] == "obs":
         outfile = calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath)

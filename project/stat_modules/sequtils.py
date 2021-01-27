@@ -10,6 +10,7 @@ are created with a section header followed by an underline of equal length.
 """
 
 import numpy as np
+from bisect import bisect_left
 from project.stat_modules.msformat import discrete_positions
 
 
@@ -17,7 +18,7 @@ def add_seq_error(pos, haps, length_bp, perfixder):
     # errors at polymorphic sites
     n_haps = haps.shape[0]
     seg_err = np.random.binomial(1, np.random.uniform(0, 0.00002), size=[n_haps, len(pos)])
-    num_seg_errors = sum(seg_err)
+    num_seg_errors = np.sum(seg_err)
     # print(np.sum(num_seg_errors))
     haps = haps - seg_err
     # 0 - 0, 0 - 1 error to -1 (to derived), 1 - 1  error to 0 (to ancestral), 1 - 0
@@ -37,19 +38,14 @@ def add_seq_error(pos, haps, length_bp, perfixder):
     num_mon_errors = np.sum(err_mask)
     # get pos and insert ix
     mon_pos = list(set(range(length_bp)) - set(pos))
-    mon_pos_arr = np.random.choice(mon_pos, num_mon_errors, replace=False)
-    mon_pos_arr = np.array(list(mon_pos_arr) + list(pos))
-    mon_pos_ix = np.argsort(np.argsort(mon_pos_arr))[0:num_mon_errors]
-    pos = np.array(sorted(mon_pos_arr))
-    # insert mono errors into haps
-    for i, ix in enumerate(mon_pos_ix):
-        try:
-            haps = np.insert(haps, ix, mon_err[:, i], axis=1)
-        except IndexError:
-            e = haps.shape[1]
-            haps = np.insert(haps, e, mon_err[:, i], axis=1)
+    mon_pos_arr = np.sort(np.random.choice(mon_pos, num_mon_errors, replace=False))
+    pos_ls = list(pos)
+    for i, mp in enumerate(mon_pos_arr):
+        ix = bisect_left(pos_ls, mp)
+        pos_ls.insert(ix, mp)
+        haps = np.insert(haps, ix, mon_err[:, i], axis=1)
 
-    return pos, haps
+    return np.array(pos_ls), haps
 
 
 def add_seqerror(pos, haps, length_bp, pfe, seq_error):
@@ -100,7 +96,7 @@ def read_ms(msfiles, msexe, nhaps, length_bp):
                         hap_arr[cix, :] = np.array(line, dtype=np.uint8)
                     pos_ls.append(new_pos)
                     hap_ls.append(hap_arr)
-
+    ms_dt[i] = (pos_ls, hap_ls)
     return ms_dt
 
 

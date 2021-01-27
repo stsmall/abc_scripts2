@@ -175,7 +175,8 @@ def dd1_2(p1, pos, gt, win_size, length_bp, quants):
         gtpop = gt.take(p, axis=1)
         pi_ = pi_fx(pos, gtpop, win_size, length_bp)
         dd12_ls.extend(np.quantile((dmin_/pi_), quants))
-
+        # TODO: make this default
+        #dd12_ls.extend(dmin_/pi_)
     return dd12_ls
 
 
@@ -215,6 +216,8 @@ def ddRank1_2(p1, pos, gt, win_size, length_bp, quants):
         gtpop = gt.take(p, axis=1)
         pw_win = pw_within(pos, gtpop, win_size, length_bp)
         ddR12 = [stats.percentileofscore(pw, dmin_[i]) for i, pw in enumerate(pw_win)]
+        # TODO: make this default
+        #ddR12_ls.extend(ddR12)
         ddR12_ls.extend(np.quantile(ddR12, quants))
     return ddR12_ls
 

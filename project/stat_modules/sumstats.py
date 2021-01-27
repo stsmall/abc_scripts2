@@ -15,7 +15,7 @@ from itertools import combinations
 from project.stat_modules import afibs
 from project.stat_modules import afs
 from project.stat_modules import ibs
-from project.stat_modules import ld
+from project.stat_modules import ld as ldfx
 from project.stat_modules import popstats
 from project.stat_modules import pwpopstats
 
@@ -151,10 +151,10 @@ class PopSumStats:
         intervals = self.stats["ld_params"]
         for p in self.stats["pop_config"]:
             hap_p, pos_p, counts_p = self.split_pop(p)
-            #pw_ld = ld.distrib_r2(pos_p, hap_p, intervals)  # Boitard 2015 r2
-            pw_ld = ld.ld_pop_mp(pos_p, hap_p, intervals)  # momentsLD 100 snps
-            #pw_ld3 = ld.ld_pop_mb(pos_p, hap_p, intervals)  # momentsLD + Boitard 2015 selection
-            #pw_ld2 = ld.ld_pop_complete(pos_p, hap_p, intervals)  # momentsLD pw-all very slow
+            #pw_ld = ldfx.distrib_r2(pos_p, hap_p, intervals)  # Boitard 2015 r2
+            pw_ld = ldfx.ld_pop_mp(pos_p, hap_p, intervals)  # momentsLD 100 snps
+            #pw_ld3 = ldfx.ld_pop_mb(pos_p, hap_p, intervals)  # momentsLD + Boitard 2015 selection
+            #pw_ld2 = ldfx.ld_pop_complete(pos_p, hap_p, intervals)  # momentsLD pw-all very slow
             stats_ls.extend(pw_ld)
 
         return stats_ls
@@ -202,7 +202,7 @@ class PopSumStats:
         stats_ls = []
         for p1, p2 in combinations(self.stats["pop_config"], 2):
             hap_p, pos_p, counts_p = self.split_pop(p1+p2)
-            pw_ld = ld.ld_pop2(len(p1), pos_p, hap_p, quants)
+            pw_ld = ldfx.ld_pop2(len(p1), pos_p, hap_p, quants)
             stats_ls.extend(pw_ld)
 
         return stats_ls
@@ -214,7 +214,7 @@ class PopSumStats:
         stats_ls = []
         for p1, p2 in combinations(self.stats["pop_config"], 2):
             hap_p, pos_p, counts_p = self.split_pop(p1+p2)
-            pw_ld = ld.ld_pop2_win(len(p1), pos_p, hap_p, win_size, length_bp)
+            pw_ld = ldfx.ld_pop2_win(len(p1), pos_p, hap_p, win_size, length_bp)
             stats_ls.extend(pw_ld)
 
         return stats_ls

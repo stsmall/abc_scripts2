@@ -4,16 +4,18 @@ Created on Wed Dec 16 20:32:28 2020
 @author: Scott T. Small
 
 """
+import multiprocessing
 import subprocess
+from math import ceil
+
 import numpy as np
 import pandas as pd
-import multiprocessing
-from math import ceil
 from tqdm import tqdm
+
 from project.sim_modules.readconfig import read_config_stats
-from project.stat_modules.write_stats import headers, stats_out
 from project.stat_modules.sequtils import read_ms_stream
 from project.stat_modules.sumstats import PopSumStats
+from project.stat_modules.write_stats import headers, stats_out
 
 
 def sim_syntax():
@@ -119,7 +121,7 @@ def model_scrm(params, ne0):
             pop1, pop2 = row["pops"]
             pop1 = int(pop1) + 1
             pop2 = int(pop2) + 1
-            if not any(i in sourcelist for i in [pop1, pop2]):
+            if all(i not in sourcelist for i in [pop1, pop2]):
                 prop = row["value"]
                 dem_list.append(f"-eps {new_time} {pop1} {pop2} {prop}")
         elif "m" in event:
@@ -127,7 +129,7 @@ def model_scrm(params, ne0):
             pop1 = int(pop1) + 1
             pop2 = int(pop2) + 1
             mig1 = row["value"]*4*ne0
-            if not any(i in sourcelist for i in [pop1, pop2]):
+            if all(i not in sourcelist for i in [pop1, pop2]):
                 if "ms" in event:  # set as symmetrical
                     mig2 = row["value"]*4*ne0
                     dem_list.append(f"-em {new_time} {pop1} {pop2} {mig1}")
@@ -261,40 +263,27 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
 
     """
     # =========================================================================
-    #  Globals
+    #  Globals for model params
     # =========================================================================
-    global ms_exe
     global demo_df
-    global model_dt
-    global mu
-    global rec
-    global ploidy
-    global scaled_Ne
-    global nhaps
-    global sample_sizes
-    global npops
-    global init_sizes
-    global dry_run
-    global scrm_l
-
-    global statsconfig
-    global stats_dt
-    global header_len
-    global header
-    # =========================================================================
-    # declare globals
-    if approx:
-        scrm_l = f"-l {approx}"
-    else:
-        scrm_l = ''
-    ms_exe = ms_path
-    dry_run = dryrun
-    model_dt = model_dict
     demo_df = demo_dataframe
+    global model_dt
+    model_dt = model_dict
+    global ms_exe
+    ms_exe = ms_path
+    global dry_run
+    dry_run = dryrun
+    global scrm_l
+    scrm_l = f"-l {approx}" if approx else ''
+    global nhaps
     nhaps = sum(model_dt["sampleSize"])
+    global sample_sizes
     sample_sizes = model_dt["sampleSize"]
+    global npops
     npops = len(sample_sizes)
+
     # set mutation rate
+    global mu
     mut_rate = model_dt["mutation_rate"]
     if type(mut_rate) is list:
         if len(mut_rate) == 2:
@@ -305,6 +294,7 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
     else:
         mu = [mut_rate]
     # set recombination rate
+    global rec
     rec_rate = model_dt["recombination_rate"]
     if type(rec_rate) is list:
         if len(rec_rate) == 2:
@@ -316,8 +306,11 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
         # rec = np.random.exponential(rec_rate, sim_number)
         rec = [rec_rate]
     # set Ne
+    global ploidy
     ploidy = model_dt["ploidy"]
+    global init_sizes
     init_sizes = [size * ploidy for size in model_dt["initialSize"]]
+    global scaled_Ne
     effective_size = model_dt["eff_size"]
     if type(effective_size) is list:
         if len(effective_size) == 2:
@@ -328,18 +321,27 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
     else:
         scaled_Ne = [effective_size * ploidy]
 
-    # set up generator fx
+    # =========================================================================
+    #  Main simulations
+    # =========================================================================
+    # set up generator fx for MP
     event = param_df["event"].values
     pops = param_df["pops"].values
     time_arr = list(zip(*param_df["time"].values))
     value_arr = list(zip(*param_df["value"].values))
     param_gen = ({"time": time_arr[i], "event": event, "pops": pops, "value": value_arr[i]} for i in range(sim_number))
     param_gen = list(param_gen)
+
     # check nprocs
     if nprocs > multiprocessing.cpu_count():  # check that there are not more requested than available
         print("not {nprocs} processors available, setting to {multiprocessing.cpu_count()}")
         nprocs = multiprocessing.cpu_count()
+
+    global statsconfig
     statsconfig = ''
+    global stats_dt
+    global header_len
+    global header
     # perform sims
     if dry_run:
         for param in param_gen:
@@ -357,7 +359,6 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
             for param in tqdm(param_gen):
                 pop_stats_arr = run_simulation(param)
                 pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
-            pops_outfile.close()
         else:
             # chunk and MP
             nk = nprocs * 10
@@ -369,7 +370,7 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
                 pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
                 print(i)
             pool.close()
-            pops_outfile.close()
+        pops_outfile.close()
     else:
         with open(f"{outfile}.sims.cmd.txt", 'w') as sims_outfile:
             for param in tqdm(param_gen):

@@ -139,10 +139,12 @@ def ld_pop2_win(p1, pos, hap, win_size, length_bp, maf=0.05):
 
 def ld_pop_complete(pos, hap, intervals, maf=0.05):
     """Calculate the LD statistics in intervals for 1 pop.
+
     If there are too many pw comparisons:
         1) randomly thin SNPs
         2) choose fewer individuals that will have fewer seg positions
         3)
+
     Parameters
     ----------
     gt : TYPE
@@ -153,6 +155,7 @@ def ld_pop_complete(pos, hap, intervals, maf=0.05):
         DESCRIPTION.
     ld : TYPE
         DESCRIPTION.
+
     Returns
     -------
     ld_ls : TYPE
@@ -198,7 +201,6 @@ def ld_pop_mp(pos, hap, intervals, maf=0.05, randn=100):
     """
     D2 = 0  # D2
     pos, gt = h2gt(pos, hap, maf=maf)
-    # TODO: remove fixed anc
     gt = gt.T
     # get distances
     c2 = pos[:, None]

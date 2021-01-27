@@ -22,7 +22,7 @@ def stats_out(stats_arr, out_file, nprocs):
     return out_file
 
 
-def headers(out_file, stats_dt):
+def headers(out_file, stats_dt, obs=False):
     stats_list = stats_dt["calc_stats"]
 
     try:
@@ -75,6 +75,9 @@ def headers(out_file, stats_dt):
                 "delta_tajD": quants
                 }
     header = []
+    if obs:
+        header.extend(["chrom", "start", "stop", "sites"])
+
     for p in stats_list:
         if p in pops_dt:
             for p_ix in range(0, n_pops):
