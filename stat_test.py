@@ -80,40 +80,44 @@ def test_seqerror2():
     assert(all(cse == 1) is True)
 
 
-def test_afibs(fold):
+def test_afibs():
     stats_ls = []
     durbin = True
     res_afibs = afibs.distrib_afibs(hap_p, pos_p, counts_p, durbin)
     afibs_m = np.round(res_afibs[::2])  # mean afibs
     afibs_std = np.round(res_afibs[1::2])  # afibs_std
-    if fold:
-        for a in [afibs_m, afibs_std]:
-            afibs_flip = np.flip(a, axis=0)
-            afibs_fold = (afibs_flip + a)
-            haps = int(len(pop1)/2)
-            stats_ls.extend(afibs_fold[0:haps])
-        ss = np.array([15053.0, 8560.0, 15209.0, 9230.0, 9230.0, 8727.0, 5724.0,
-                       4782.0, 5527.0, 5527.0])
-        assert(all(np.isclose(ss, stats_ls)) is True)
-    else:
-        stats_ls.extend(afibs_m)  # mean afibs
-        stats_ls.extend(afibs_std)  # afibs_std
-        ss = np.array([12878., 5664., 10330., 6950., 2280., 4879., 2896., 2175.,
-                       6411., 5724., 1834., 3938., 1589., 2948., 0., 2316.])
+    # unfold
+    stats_ls.extend(afibs_m)  # mean afibs
+    stats_ls.extend(afibs_std)  # afibs_std
+    ss = np.array([12878., 5664., 10330., 6950., 2280., 4879., 2896., 2175.,
+                   6411., 5724., 1834., 3938., 1589., 2948., 0., 2316.])
+    assert(all(np.isclose(ss, stats_ls)) is True)
+    # fold
+    stats_ls = []
+    for a in [afibs_m, afibs_std]:
+        afibs_flip = np.flip(a, axis=0)
+        afibs_fold = (afibs_flip + a)
+        haps = int(len(pop1)/2)
+        stats_ls.extend(afibs_fold[0:haps])
+    ss = np.array([15053.0, 8560.0, 15209.0, 9230.0, 9230.0, 8727.0, 5724.0,
+                   4782.0, 5527.0, 5527.0])
     assert(all(np.isclose(ss, stats_ls)) is True)
 
 
-def test_sfs(fold, agg):
-    sfs = afs.asfs_stats(gtpop, pos_s, fold, agg)
-    if agg:
-        ss = np.array([0.43859649, 0.16666667, 0.14912281, 0.20175439, 0.01754386,
-                       0.02631579])
-    elif fold:
-        ss = np.array([0.46491228, 0.18421053, 0.23684211, 0.06140351, 0.05263158])
-    else:
-        ss = np.array([0.43859649, 0.16666667, 0.14912281, 0.01754386, 0.05263158,
-                       0.04385965, 0.0877193, 0.01754386, 0.02631579])
-
+def test_sfs():
+    # unfold
+    sfs = afs.asfs_stats(gtpop, pos_s, False, False)
+    ss = np.array([0.43859649, 0.16666667, 0.14912281, 0.01754386, 0.05263158,
+                   0.04385965, 0.0877193, 0.01754386, 0.02631579])
+    assert(all(np.isclose(ss, sfs)) is True)
+    # fold
+    sfs = afs.asfs_stats(gtpop, pos_s, True, False)
+    ss = np.array([0.46491228, 0.18421053, 0.23684211, 0.06140351, 0.05263158])
+    assert(all(np.isclose(ss, sfs)) is True)
+    # agg
+    sfs = afs.asfs_stats(gtpop, pos_s, False, True)
+    ss = np.array([0.43859649, 0.16666667, 0.14912281, 0.20175439, 0.01754386,
+                   0.02631579])
     assert(all(np.isclose(ss, sfs)) is True)
 
 
@@ -151,29 +155,29 @@ def test_hap_het():
     assert(all(np.isclose(ss, res)) is True)
 
 
-def test_spatial_sfs(fold, agg):
+def test_spatial_sfs():
     n_haplo = len(pop1)
     spat_ = afs.spatial_histo_fast(pos_p, counts_p, n_haplo-1)
     spat_ = np.round(spat_)
-    if fold:
-        spat_flip = np.flip(spat_, axis=0)
-        spat_fold = (spat_flip + spat_)
-        haps = int(len(pop1)/2)
-        spat_fold = spat_fold[0:haps]
-        spat_ = spat_fold
-        ss = np.array([13881.,  7868., 15864., 32643., 24952.])
-        assert(all(np.isclose(ss, spat_)) is True)
-    elif agg:
-        spat_ag = list(spat_[0:3])
-        spat_ag.append(np.mean(spat_[3:-2]))
-        spat_ag.append(spat_[-2])
-        spat_ag.append(spat_[-1])
-        spat_ = np.array(spat_ag)
-        ss = np.array([1419.0, 7868.0, 5648.0, 13833.75, 0.0, 12462.0])
-        assert(all(np.isclose(ss, spat_)) is True)
-    else:
-        ss = np.array([1419., 7868., 5648., 0., 12476., 32643., 10216., 0., 12462.])
-        assert(all(np.isclose(ss, spat_)) is True)
+    # unfold
+    ss = np.array([1419., 7868., 5648., 0., 12476., 32643., 10216., 0., 12462.])
+    assert(all(np.isclose(ss, spat_)) is True)
+    # fold
+    spat_flip = np.flip(spat_, axis=0)
+    spat_fold = (spat_flip + spat_)
+    haps = int(len(pop1)/2)
+    spat_fold = spat_fold[0:haps]
+    spat_f = spat_fold
+    ss = np.array([13881.,  7868., 15864., 32643., 24952.])
+    assert(all(np.isclose(ss, spat_f)) is True)
+    # agg
+    spat_ag = list(spat_[0:3])
+    spat_ag.append(np.mean(spat_[3:-2]))
+    spat_ag.append(spat_[-2])
+    spat_ag.append(spat_[-1])
+    spat_a = np.array(spat_ag)
+    ss = np.array([1419.0, 7868.0, 5648.0, 13833.75, 0.0, 12462.0])
+    assert(all(np.isclose(ss, spat_a)) is True)
 
 
 def test_ld():
@@ -184,19 +188,20 @@ def test_ld():
     assert(all(np.isclose(ss, np.round(pw_ld, 5))) is True)
 
 
-def test_jsfs(fold):
-    props = afs.jsfs_stats(len(pop1), gt, pos_s, fold)
-    if fold:
-        ss = np.array([0.29101, 0.3545 , 0., 0., 0.09524, 0.12169, 0.00529,
-                    0., 0., 0., 0., 0.02646, 0.01058, 0., 0.04762, 0.01058,
-                    0.01587, 0.00529, 0.00529, 0., 0., 0.01058, 0.])
-        assert(all(np.isclose(ss, np.round(props, 5))) is True)
-    else:
-        ss = np.array([0.25397, 0.32804, 0.10582, 0.1164, 0.00529, 0.01058,
-                       0.00529, 0.02646, 0.00529, 0.00529, 0.01058, 0., 0.,
-                       0.0582, 0., 0., 0., 0., 0.00529, 0., 0.02116, 0.03175,
-                       0.01058])
-        assert(all(np.isclose(ss, np.round(props, 5))) is True)
+def test_jsfs():
+    # fold
+    props = afs.jsfs_stats(len(pop1), gt, pos_s, True)
+    ss = np.array([0.29101, 0.3545 , 0., 0., 0.09524, 0.12169, 0.00529,
+                0., 0., 0., 0., 0.02646, 0.01058, 0., 0.04762, 0.01058,
+                0.01587, 0.00529, 0.00529, 0., 0., 0.01058, 0.])
+    assert(all(np.isclose(ss, np.round(props, 5))) is True)
+    # unfold
+    props = afs.jsfs_stats(len(pop1), gt, pos_s, False)
+    ss = np.array([0.25397, 0.32804, 0.10582, 0.1164, 0.00529, 0.01058,
+                   0.00529, 0.02646, 0.00529, 0.00529, 0.01058, 0., 0.,
+                   0.0582, 0., 0., 0., 0., 0.00529, 0., 0.02116, 0.03175,
+                   0.01058])
+    assert(all(np.isclose(ss, np.round(props, 5))) is True)
 
 
 def test_ld_2pop():
@@ -259,21 +264,15 @@ def test_IBS_maxXY():
 
 if __name__ == "__main__":
     test_seqerror()
-    test_afibs(True)
-    test_afibs(False)
-    test_sfs(False, False)
-    test_sfs(True, False)
-    test_sfs(False, True)
+    test_afibs()
+    test_sfs()
     test_ibs()
     test_pi()
     test_tajd()
     test_hap_het()
-    test_spatial_sfs(False, False)
-    test_spatial_sfs(True, False)
-    test_spatial_sfs(False, True)
+    test_spatial_sfs()
     test_ld()
-    test_jsfs(True)
-    test_jsfs(False)
+    test_jsfs()
     test_ld_2pop()
     test_FST()
     test_dXY()
