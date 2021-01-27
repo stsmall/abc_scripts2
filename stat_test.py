@@ -105,8 +105,6 @@ def test_afibs(fold):
 
 def test_sfs(fold, agg):
     sfs = afs.asfs_stats(gtpop, pos_s, fold, agg)
-    # assertion test
-
     if agg:
         ss = np.array([0.43859649, 0.16666667, 0.14912281, 0.20175439, 0.01754386,
                        0.02631579])
@@ -189,9 +187,16 @@ def test_ld():
 def test_jsfs(fold):
     props = afs.jsfs_stats(len(pop1), gt, pos_s, fold)
     if fold:
-        pass
+        ss = np.array([0.29101, 0.3545 , 0., 0., 0.09524, 0.12169, 0.00529,
+                    0., 0., 0., 0., 0.02646, 0.01058, 0., 0.04762, 0.01058,
+                    0.01587, 0.00529, 0.00529, 0., 0., 0.01058, 0.])
+        assert(all(np.isclose(ss, np.round(props, 5))) is True)
     else:
-        pass
+        ss = np.array([0.25397, 0.32804, 0.10582, 0.1164, 0.00529, 0.01058,
+                       0.00529, 0.02646, 0.00529, 0.00529, 0.01058, 0., 0.,
+                       0.0582, 0., 0., 0., 0., 0.00529, 0., 0.02116, 0.03175,
+                       0.01058])
+        assert(all(np.isclose(ss, np.round(props, 5))) is True)
 
 
 def test_ld_2pop():
@@ -229,26 +234,27 @@ def test_gmin():
 
 def test_dd12():
     flt = pwpopstats.dd1_2(len(pop1), pos_s, gt, win_size, length_bp, quants)
-    flt = np.quantile(flt, quants)
-    ss =
-    assert(all(np.isclose(ss, flt)) is True)
+    ss = np.array([0.09978, 0.47535, 0.53254, 0.60976, 0.70312, 0.1312 , 0.35809,
+                0.73469, 0.74503, 0.82569])
+    assert(all(np.isclose(ss, np.round(flt, 5))) is True)
 
 
 def test_ddRank12():
     flt = pwpopstats.ddRank1_2(len(pop1), pos_s, gt, win_size, length_bp, quants)
-    flt = np.quantile(flt, quants)
-    ss =
-    assert(all(np.isclose(ss, flt)) is True)
+    ss = np.array([12.78, 19.44, 20., 26.11, 37.22, 15., 23.89, 23.89, 27.22, 32.78])
+    assert(all(np.isclose(ss, np.round(flt, 2))) is True)
 
 
 def test_Zx():
     flt = pwpopstats.zx(len(pop1), pos, haps, win_size, length_bp)
-    stats_ls = np.quantile(flt, quants)
-    assert(all(np.isclose(ss, pw_ld)) is True)
+    stats_ls = np.nanquantile(flt, quants)
+    ss = np.array([0. , 0.21724138, 0.65702271, 1.21374723, 1.78181818])
+    assert(all(np.isclose(ss, stats_ls)) is True)
 
 
 def test_IBS_maxXY():
     flt = pwpopstats.ibs_maxxy(len(pop1), pos, haps, length_bp)
+    assert(flt == 13443.0)
 
 
 if __name__ == "__main__":
@@ -266,9 +272,8 @@ if __name__ == "__main__":
     test_spatial_sfs(True, False)
     test_spatial_sfs(False, True)
     test_ld()
-    #test_jsfs(True)
-    #test_jsfs(False)
-    breakpoint()
+    test_jsfs(True)
+    test_jsfs(False)
     test_ld_2pop()
     test_FST()
     test_dXY()

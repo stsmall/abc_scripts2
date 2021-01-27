@@ -89,9 +89,9 @@ def asfs_stats(gt, pos, fold, agg):
     gtseg, pos_s = get_seg(gt, pos)
     # sfs
     if fold:
-        sfsp = (allel.sfs_folded(gtseg.count_alleles()))[1:]
+        sfsp = (allel.sfs_folded(gtseg.count_alleles(), gtseg.shape[1]))[1:]
     else:
-        sfsp = (allel.sfs(gtseg.count_alleles()[:, 1]))[1:]
+        sfsp = (allel.sfs(gtseg.count_alleles()[:, 1], gtseg.shape[1]))[1:-1]
     tots = np.sum(sfsp)
     sfs = sfsp / tots
     if agg:
@@ -172,8 +172,7 @@ def jsfs_stats(p1, gt, pos, fold):
         DESCRIPTION.
 
     """
-    gtseg, pos_s = get_seg(gt, pos)
-    gtr = gtseg
+    gtr, pos_s = get_seg(gt, pos)
     gtpop1 = gtr.take(range(p1), axis=1)
     gtpop2 = gtr.take(range(p1, gtr.shape[1]), axis=1)
     ac1 = gtpop1.count_alleles()
@@ -181,14 +180,14 @@ def jsfs_stats(p1, gt, pos, fold):
     # jsfs
     if fold:
         # pad for allel as well
-        popsizeA, popsizeB = p1/2, (gtr.shape[1]-p1)/2
-        jsfs = allel.joint_sfs_folded(ac1, ac2)
-        fs = np.resize(jsfs, (popsizeA+1, popsizeB+1))
+        #popsizeA, popsizeB = p1/2, (gtr.shape[1]-p1)/2
+        jsfs = allel.joint_sfs_folded(ac1, ac2, gtpop1.shape[1], gtpop2.shape[1])
+        #fss = np.resize(jsfs, (int(popsizeA)+1, int(popsizeB)+1))
     else:
         # pad for allel as well
-        popsizeA, popsizeB = p1, gtr.shape[1]-p1
-        jsfs = allel.joint_sfs(ac1[:, 1], ac2[:, 1])
-        fs = np.resize(jsfs, (popsizeA+1, popsizeB+1))
-    props = summarizejsfs(fs)
+        #popsizeA, popsizeB = p1, gtr.shape[1]-p1
+        jsfs = allel.joint_sfs(ac1[:, 1], ac2[:, 1], gtpop1.shape[1], gtpop2.shape[1])
+        #fss = np.resize(jsfs, (int(popsizeA)+1, int(popsizeB)+1))
+    props = summarizejsfs(jsfs)
 
     return props

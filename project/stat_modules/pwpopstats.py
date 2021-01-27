@@ -86,7 +86,7 @@ def fst(p1, pos, gt, quants):
     ac2_seg = ac2.compress(loc_asc, axis=0)
     num, den = allel.hudson_fst(ac1_seg, ac2_seg)
     fst_snp = num / den
-    fst_ = np.quantile(fst_snp, quants)
+    fst_ = np.nanquantile(fst_snp, quants)
     return fst_
 
 
@@ -174,9 +174,7 @@ def dd1_2(p1, pos, gt, win_size, length_bp, quants):
     for p in [p1_, p2_]:
         gtpop = gt.take(p, axis=1)
         pi_ = pi_fx(pos, gtpop, win_size, length_bp)
-        dd12_ls.extend(np.quantile((dmin_/pi_), quants))
-        # TODO: make this default
-        #dd12_ls.extend(dmin_/pi_)
+        dd12_ls.extend(np.nanquantile((dmin_/pi_), quants))
     return dd12_ls
 
 
@@ -216,9 +214,7 @@ def ddRank1_2(p1, pos, gt, win_size, length_bp, quants):
         gtpop = gt.take(p, axis=1)
         pw_win = pw_within(pos, gtpop, win_size, length_bp)
         ddR12 = [stats.percentileofscore(pw, dmin_[i]) for i, pw in enumerate(pw_win)]
-        # TODO: make this default
-        #ddR12_ls.extend(ddR12)
-        ddR12_ls.extend(np.quantile(ddR12, quants))
+        ddR12_ls.extend(np.nanquantile(ddR12, quants))
     return ddR12_ls
 
 
