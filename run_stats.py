@@ -121,6 +121,7 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     panel = pd.read_csv(pops, sep='\t', usecols=['sampleID', 'population'])
 
     # load zarr
+    breakpoint()
     callset = zarr.open_group(str(zarrfile), mode='r')
     samples = callset[f'{chrom}/samples'][:]
     samples_list = list(samples)
