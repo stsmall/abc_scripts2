@@ -185,7 +185,7 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
                     pos_ix = pos.locate_range(start, stop)
                 except KeyError:
                     continue
-                pos_t = pos[pos_ix]
+                pos_t = pos[pos_ix] - start
                 haps_t = haps[:, pos_ix]
                 counts_t = haps_t.sum(axis=0).astype(int)
                 # run stats
