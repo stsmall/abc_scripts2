@@ -189,7 +189,7 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
                 haps_t = haps[:, pos_ix]
                 counts_t = haps_t.sum(axis=0).astype(int)
                 # run stats
-                stats_ls = [chrom, start, stop, sites]
+                stats_ls = [start, stop, sites]
                 popsumstats = PopSumStats(pos_t, haps_t, counts_t, stats_dt)
                 for stat in stats_dt["calc_stats"]:
                     stat_fx = getattr(popsumstats, stat)
@@ -204,10 +204,10 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
                 progressbar.update()
     # write stats out
     for stat in range(stat_mat.shape[0]):
+        chrom = chrom_ls[stat]
         rd = [round(num, 5) for num in stat_mat[stat, :]]
-        rd[0] = chrom_ls[stat]
         stats_str = "\t".join(map(str, rd))
-        pops_outfile.write(f"{stats_str}\n")
+        pops_outfile.write(f"{chrom}\t{stats_str}\n")
     progressbar.close()
     pops_outfile.close()
 
