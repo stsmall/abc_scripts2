@@ -1,10 +1,10 @@
-# abc_scripts2
+# Scripts for Approximate Bayesian Computation in population genomics  
 Refactoring of abc_scripts.
 My goal is to build a customizable set of scripts to allow demographic inference under ABC. Given some of the known affects of linked selection (BGS and Positive) on patterns of polymorphism, I had added the msbgs program. I have also added a model of sequencing error (Jay et al. 2019) and the option to use the MMC in msprime.
 
 **TODO**
 * add support for SLiM and pySlim. 
-* option to use MMC, beta or dirac in msprime  
+* option to use MMC, beta or dirac in msprime (not yet stable options in msprime)
 
 ## NEW in sims: 
 1. msprime as default
@@ -16,35 +16,41 @@ My goal is to build a customizable set of scripts to allow demographic inference
 
 ### run_sims.py
  * python > 3  
- * sk-allel   
+ * scikit-allel   
  * numpy  
  * pandas  
  * msprime  
  * [msbgs](https://zeng-lab.group.shef.ac.uk/wordpress/?page_id=28) *(optional)*
  * [discoal](https://github.com/kr-colab/discoal) *(optional)*
+ * [scrm](https://github.com/scrm/scrm) *(optional)*
 
 ### run_stats.py
  * python > 3
  * sk-allel
  * numpy
  * pandas  
- * momentsLD and moments *(optional)*
+ * [momentsLD](https://bitbucket.org/simongravel/moments/src/LD/moments/) *(optional)*
 
-### recommended workflow
-**make sims**  
-`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 50000 --out msp_test --dryrun`  
-`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 50000 --out msp_test --stats_cfg examples/stats.example.cfg`  
-`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out discoal_test --ms discoal`  
-`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msbgs_test --ms msbgs`  
+### examples
+**test model**  
+`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msp_test --dryrun`  
+`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msp_test --ms scrm --dryrun`  
 
-**get sim stats**  
-`run_stats.py sims -cfg examples/stats_example.cfg --file discoal.sims.out --format ms`  
-`run_stats.py sims -cfg examples/stats_example.cfg --file msbgs.sims.out --format ms`  
+**sims and stats**  
+`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msp_test --stats_cfg examples/stats.example.cfg`  
+`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out scrm_test --ms scrm --stats_cfg examples/stats.example.cfg`  
+`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out discoal_test --ms discoal --stats_cfg examples/stats.example.cfg`  
+`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msbgs_test --ms msbgs --stats_cfg examples/stats.example.cfg`  
+
+**write sims to file, then calc stats from file**  
+`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out scrm.sims.msout --ms scrm`  
+`run_stats.py sims scrm.sims.msout -cfg examples/stats_example.cfg --outfile scrm.sims.out --ms scrm`  
 
 **get obs stats**  
-`run_stats.py obs -cfg examples/stats_example.cfg --file example.vcf --pops example.meta.csv`  
+`utils/make_coordsfile.py 3 998670 10000 1000 --gff tests/test.gff --gff_filter intergenic`  
+`run_stats.py obs 3 --pops_file examples/obs.40.csv -cfg docs/examples/example.stats.cfg --coords_bed docs/examples/test.bed --zarr_path docs/examples/test --outfile testobsstats`  
 
-**perform analyses**  
+**ABC for param inference**  
 [abcrf](https://cran.r-project.org/web/packages/abcrf/index.html) (for importance rankings on parameter inference and inference)       
 [abc](https://cran.r-project.org/web/packages/abc/vignettes/abcvignette.pdf) (for parameter inference)  
 
