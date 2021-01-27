@@ -47,7 +47,7 @@ My goal is to build a customizable set of scripts to allow demographic inference
 `run_stats.py sims scrm.sims.msout -cfg examples/stats_example.cfg --outfile scrm.sims.out --ms scrm`  
 
 **get obs stats**  
-`utils/make_coordsfile.py 3 998670 10000 1000 --gff tests/test.gff --gff_filter intergenic`
+`utils/make_coordsfile.py 3 998670 10000 1000 --gff tests/test.gff --gff_filter intergenic`  
 `run_stats.py obs 3 --pops_file examples/obs.40.csv -cfg docs/examples/example.stats.cfg --coords_bed docs/examples/test.bed --zarr_path docs/examples/test --outfile testobsstats`  
 
 **ABC for param inference**  
