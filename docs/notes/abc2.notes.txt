@@ -1,0 +1,44 @@
+stats_dt = {"num_haps": n_haps,
+            "pop_config": popconfig,
+            "length_bp": length_bp,
+            "reps": reps,
+            "recombination_rate": recombination_rate,
+            "perfixder": per_fix_derived,
+            "win_size1": win_size,
+            "win_size2": win_size_2,
+            "calc_stats": stat_list,
+            "ibs_params": (prob_list, size_list),
+            "ld_params": intervals_list
+            }
+
+
+ts_reps = list(msp.simulate(sample_size=10, Ne=10000, recombination_rate=1e-8,mutation_rate=1e-8,length=100000, num_replicates=10))
+pos_list = []
+hap_list = []
+count_list = []
+for rep, ts in enumerate(ts_reps):
+    pos = np.array([variant.site.position for variant in ts.variants()])
+    pos_list.append(pos.astype(int))
+    hap = ts.genotype_matrix().T
+    hap_list.append(hap)
+
+import logging
+import daiquiri
+
+def setup_logging(args):
+    log_level = "INFO"
+    if args.quiet:
+        log_level = "WARN"
+    if args.debug:
+        log_level = "DEBUG"
+
+    daiquiri.setup(level=log_level)
+    msprime_logger = daiquiri.getLogger("msprime")
+    msprime_logger.setLevel("WARN")
+    mpl_logger = daiquiri.getLogger("matplotlib")
+    mpl_logger.setLevel("WARN")
+
+    #logging.debug()
+    #logging.error()
+    #logging.warning()
+    #logging.info()
