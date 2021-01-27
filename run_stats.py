@@ -114,13 +114,13 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
         zarrfile = zarrpath
     else:
         zarrfile = zarrpath
-        allel.vcf_to_zarr(str(vcfpath), str(zarrpath), group=chrom, fields='*', log=sys.stdout)
+        allel.vcf_to_zarr(str(vcfpath), str(zarrpath), group=chrom, fields='*', alt_number=2,
+                          log=sys.stdout, compressor=numcodecs.Blosc(cname='zstd', clevel=1, shuffle=False))
 
     # load pop info
     panel = pd.read_csv(pops, sep='\t', usecols=['sampleID', 'population'])
 
     # load zarr
-    breakpoint()
     callset = zarr.open_group(str(zarrfile), mode='r')
     samples = callset[f'{chrom}/samples'][:]
     samples_list = list(samples)
