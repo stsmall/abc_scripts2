@@ -203,13 +203,18 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
                 i += 1
                 progressbar.update()
     # write stats out
+    stat_mean = np.round(np.nanmean(stat_mat, axis=0), 5)
+    stats_str = "\t".join(map(str, stat_mean))
+    pops_outfile.write(f"mean_{chrom}\t{int(stat_mat[0, 0])}\t{stop}\t{np.sum(stat_mat[:, 3])}\t{stats_str}\n")
+    breakpoint()
     for stat in range(stat_mat.shape[0]):
         chrom = chrom_ls[stat]
-        start = int(stat_mat[stat, 1])
-        stop = int(stat_mat[stat, 2])
+        start = int(stat_mat[stat, 0])
+        stop = int(stat_mat[stat, 1])
+        sites = int(stat_mat[stat, 2])
         rd = [round(num, 5) for num in stat_mat[stat, 3:]]
         stats_str = "\t".join(map(str, rd))
-        pops_outfile.write(f"{chrom}\t{start}\t{stop}\t{stats_str}\n")
+        pops_outfile.write(f"{chrom}\t{start}\t{stop}\t{sites}\t{stats_str}\n")
     progressbar.close()
     pops_outfile.close()
 
