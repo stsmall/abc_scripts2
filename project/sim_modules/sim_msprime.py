@@ -36,8 +36,10 @@ def pop_config():
     """
     sample_sizes = model_dt["sampleSize"]
     init_sizes = [size * ploidy for size in model_dt["initialSize"]]
-
-    return [msp.PopulationConfiguration(sample_size=ss, intitial_size=int) for ss, init in zip(sample_sizes, init_sizes)]
+    pops_ls = []
+    for ss, init in zip(sample_sizes, init_sizes):
+        pops_ls.append(msp.PopulationConfiguration(sample_size=ss, initial_size=init))
+    return pops_ls
 
 
 def demo_config(params):

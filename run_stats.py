@@ -153,7 +153,7 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
         for line in cb:
             if not line.startswith("chrom"):
                 ln_count += 1
-    progressbar = tqdm(total=ln_count, desc="stats", unit='window')
+    progressbar = tqdm(total=ln_count, desc="window numb", unit='window')
 
     # update stats_dt
     stats_dt["num_haps"] = haps.shape[0]
@@ -205,9 +205,11 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     # write stats out
     for stat in range(stat_mat.shape[0]):
         chrom = chrom_ls[stat]
-        rd = [round(num, 5) for num in stat_mat[stat, :]]
+        start = int(stat_mat[stat, 1])
+        stop = int(stat_mat[stat, 2])
+        rd = [round(num, 5) for num in stat_mat[stat, 3:]]
         stats_str = "\t".join(map(str, rd))
-        pops_outfile.write(f"{chrom}\t{stats_str}\n")
+        pops_outfile.write(f"{chrom}\t{start}\t{stop}\t{stats_str}\n")
     progressbar.close()
     pops_outfile.close()
 
