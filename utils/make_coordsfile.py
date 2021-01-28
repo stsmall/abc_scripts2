@@ -19,23 +19,21 @@ def load_gff(chrom, stop, gff, gff_filt):
     gff_ls = []
     e = 1
     intron_s = 0
+    gs = 0
     with open(gff, 'r') as gf:
         for line in gf:
-            if line.startswith("###"):
-                if "intergenic" in gff_filt:
-                    try:
-                        line = next(gf)
-                        g_lin = line.split("\t")
-                        if g_lin[0] == chrom:
-                            gs = int(g_lin[3])
-                    except StopIteration:
-                        gs = stop
-                    gff_ls.append((e-1, gs))
             if not line.startswith("#"):
                 g_lin = line.split("\t")
                 if g_lin[0] == chrom:
                     feat = g_lin[2]
-                    if feat in feat_ls:
+                    if "intergenic" in gff_filt:
+                        if feat == "gene":
+                            if gs == 0:
+                                gff_ls.append((gs, int(g_lin[3])))
+                            else:
+                                gff_ls.append((gs-1, int(g_lin[3])))
+                            gs = int(g_lin[4])
+                    elif feat in feat_ls:
                         s = int(g_lin[3])
                         e = int(g_lin[4])
                         if feat in gff_filt:
