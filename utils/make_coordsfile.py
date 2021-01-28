@@ -30,9 +30,11 @@ def load_gff(chrom, stop, gff, gff_filt):
                         if feat == "gene":
                             if gs == 0:
                                 gff_ls.append((gs, int(g_lin[3])))
+                                gs = int(g_lin[4])
                             else:
-                                gff_ls.append((gs-1, int(g_lin[3])))
-                            gs = int(g_lin[4])
+                                if gs < int(g_lin[3]):
+                                    gff_ls.append((gs-1, int(g_lin[3])))
+                                    gs = int(g_lin[4])
                     elif feat in feat_ls:
                         s = int(g_lin[3])
                         e = int(g_lin[4])
