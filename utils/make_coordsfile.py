@@ -83,36 +83,39 @@ def make_bed_gff(chrom, window, step, stop, gff_ls, mask_arr, mask_frac):
     f.write("chrom\tchromStart\tchromEnd\tsites\n")
     for feat in gff_ls:
         s, e = feat
+        if s > e:  # reverse strand
+            e, s = feat
         feat_size = e - s
         if feat_size > window:
-            e = s + window
-            while e <= feat_size:
+            ew = s + window
+            sw = s
+            while ew <= feat_size:
                 if mask_arr is not None:
-                    n_mask = np.count_nonzero((mask_arr >= s) & (mask_arr <= e))
-                    w_len = e - s
+                    n_mask = np.count_nonzero((mask_arr >= sw) & (mask_arr <= ew))
+                    w_len = ew - sw
                     n_frac = n_mask/w_len
                     if n_frac < mask_frac:
                         sites = w_len - n_mask
-                        f.write(f"{chrom}\t{s}\t{e}\t{sites}\n")
+                        f.write(f"{chrom}\t{sw}\t{ew}\t{sites}\n")
                 else:
-                    w_len = e - s
-                    f.write(f"{chrom}\t{s}\t{e}\t{w_len}\n")
-                s += step
-                e += step
-            if feat_size < e:
+                    w_len = ew - sw
+                    f.write(f"{chrom}\t{sw}\t{ew}\t{w_len}\n")
+                sw += step
+                ew += step
+            if feat_size < ew:
                 # last window
                 # TODO: possible overstep on last window since I dont use stop_len
-                e = feat_size
+                ew = feat_size
                 if mask_arr is not None:
-                    n_mask = np.count_nonzero((mask_arr >= s) & (mask_arr <= e))
-                    w_len = e - (s - 1)
+                    n_mask = np.count_nonzero((mask_arr >= sw) & (mask_arr <= ew))
+                    w_len = ew - (sw - 1)
                     n_frac = n_mask/w_len
                     if n_frac < mask_frac:
                         sites = w_len - n_mask
-                        f.write(f"{chrom}\t{s}\t{e}\t{sites}\n")
+                        f.write(f"{chrom}\t{sw}\t{ew}\t{sites}\n")
                 else:
-                    w_len = e - s
-                    f.write(f"{chrom}\t{s}\t{e}\t{w_len}\n")
+                    w_len = ew - sw
+                    f.write(f"{chrom}\t{sw}\t{ew}\t{w_len}\n")
         else:
             if mask_arr is not None:
                 n_mask = np.count_nonzero((mask_arr >= s) & (mask_arr <= e))
