@@ -91,7 +91,7 @@ def make_bed_gff(chrom, window, step, stop, gff_ls, mask_arr, mask_frac):
         if feat_size > window:
             ew = s + window
             sw = s
-            while ew <= feat_size:
+            while ew <= e:
                 if mask_arr is not None:
                     n_mask = np.count_nonzero((mask_arr >= sw) & (mask_arr <= ew))
                     w_len = ew - sw
@@ -104,10 +104,10 @@ def make_bed_gff(chrom, window, step, stop, gff_ls, mask_arr, mask_frac):
                     f.write(f"{chrom}\t{sw}\t{ew}\t{w_len}\n")
                 sw += step
                 ew += step
-            if feat_size < ew:
+            if e < ew:
                 # last window
                 # TODO: possible overstep on last window since I dont use stop_len
-                ew = feat_size
+                ew = e
                 if mask_arr is not None:
                     n_mask = np.count_nonzero((mask_arr >= sw) & (mask_arr <= ew))
                     w_len = ew - (sw - 1)
