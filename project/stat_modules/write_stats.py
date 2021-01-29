@@ -97,8 +97,8 @@ def headers(out_file, stats_dt, obs=False):
                 if s_ix == 1:
                     header.append(f"{p}_pop{i}{j}")
                 elif "dd12" in p or "ddRank12" in p:
-                    header.extend([f"{p}_{k}_pop{i}" for k in range(1, s_ix+1)])
-                    header.extend([f"{p}_{k}_pop{j}" for k in range(1, s_ix+1)])
+                    header.extend([f"{p}_{k}_{i}_pop{i}{j}" for k in range(1, s_ix+1)])
+                    header.extend([f"{p}_{k}_{j}_pop{i}{j}" for k in range(1, s_ix+1)])
                 else:
                     header.extend([f"{p}{k}_pop{i}{j}" for k in range(1, s_ix+1)])
         else:

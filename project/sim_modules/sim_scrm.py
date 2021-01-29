@@ -203,7 +203,7 @@ def run_simulation(param_df):
         # exact -l -1 or 100000
         # good choices: scrm_l = "-l 100r"; scrm_l = "-l 250r"
         ms_base = ("{ms} {nhaps} {loci} -t {theta} -r {rho} {basepairs} "
-                   "{subpops} {ne_subpop} {demo} " + scrm_l)
+                   "{subpops} {ne_subpop} {migmat} {demo} " + scrm_l)
         mscmd = ms_base.format(**ms_params)
         length_bp = stats_dt["length_bp"]
         pfe = stats_dt["perfixder"]
