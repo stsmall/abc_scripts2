@@ -230,7 +230,8 @@ class PopSumStats:
             try:
                 stats_ls.extend(flt)
             except TypeError:
-                breakpoint()
+                flt = [np.nan]*len(quants)
+                stats_ls.extend(flt)
         return stats_ls
 
     def dXY(self):
