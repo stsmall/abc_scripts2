@@ -227,7 +227,10 @@ class PopSumStats:
         for p1, p2 in combinations(self.stats["pop_config"], 2):
             gtpops = gt.take(p1+p2, axis=1)
             flt = pwpopstats.fst(len(p1), pos, gtpops, quants)
-            stats_ls.extend(flt)
+            try:
+                stats_ls.extend(flt)
+            except TypeError:
+                breakpoint()
         return stats_ls
 
     def dXY(self):

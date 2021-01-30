@@ -43,7 +43,7 @@ def add_seq_error(pos, haps, length_bp, perfixder):
         ix = bisect_left(pos_ls, mp)
         pos_ls.insert(ix, mp)
         haps = np.insert(haps, ix, mon_err[:, i], axis=1)
-    print(f"{er1}\t{np.sum(seg_err)}\t{np.sum(mon_err)}\t{der_err}")
+    #print(f"{er1}\t{np.sum(seg_err)}\t{np.sum(mon_err)}\t{der_err}")
     return np.array(pos_ls), haps
 
 
