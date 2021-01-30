@@ -61,8 +61,11 @@ class DrawDist(object):
             upper bound
 
         """
-        trunc = np.floor((len(str(round(low))) - 1) / 2) * -1
-        nn = np.random.randint(low, high+1, size)
+        if type(low) is int or type(low) is float:
+            trunc = np.floor((len(str(round(low))) - 1) / 2) * -1
+        else:
+            trunc = np.floor((len(str(round(low[0]))) - 1) / 2) * -1
+        nn = np.random.randint(low, np.array(high)+1, size)
         return np.around(nn, int(trunc))
 
     def log_unif_int(self, low, high, size, base=10):
