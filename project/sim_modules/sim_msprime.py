@@ -155,21 +155,27 @@ def run_simulation(param_df):
     pops = pop_config()
     # build demographic command line
     demo_events = demo_config(param_df)
+
+    ne0 = np.random.choice(scaled_Ne)
+    mu_t = np.random.choice(mu)
+    rec_t = np.random.choice(rec)
+    pfileout.write(f"{ne0}\t{mu_t}\t{rec_t}\n")
     # check demo
     if dry_run:
         checkDemo(pops, demo_events)
         return None
     else:
         trees = msp.simulate(
-                          Ne=np.random.choice(scaled_Ne),
-                          recombination_rate=np.random.choice(rec),
-                          mutation_rate=np.random.choice(mu),
+                          Ne=ne0,
+                          recombination_rate=rec_t,
+                          mutation_rate=mu_t,
                           num_replicates=model_dt["loci"],
                           length=model_dt["contig_length"],
                           population_configurations=pops,
                           migration_matrix=model_dt["migmat"],
                           demographic_events=demo_events,
                           model=initial_model)
+
     # calc stats
     stat_mat = np.zeros([model_dt["loci"], header_len])
     length_bp = stats_dt["length_bp"]
@@ -292,7 +298,8 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
             scaled_Ne = effective_size
     else:
         scaled_Ne = [effective_size * ploidy]
-
+    global pfileout
+    pfileout = open(f"{outfile}.ne_mu_rec.out", 'w')
     # =========================================================================
     #  Main simulations
     # =========================================================================
@@ -342,3 +349,4 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
         pops_outfile.close()
     else:
         print("No stats file given with msprime")
+    pfileout.close()

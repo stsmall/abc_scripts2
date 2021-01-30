@@ -146,6 +146,7 @@ def sim_syntax():
     ne0 = np.random.choice(scaled_Ne)
     mu_t = np.random.choice(mu)
     rec_t = np.random.choice(rec)
+    pfileout.write(f"{ne0}\t{mu_t}\t{rec_t}\n")
     # calc theta
     theta_loc = 4 * ne0 * mu_t * locus_len
     # calc rho rate
@@ -438,7 +439,8 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number,
             scaled_Ne = effective_size
     else:
         scaled_Ne = [effective_size * ploidy]
-
+    global pfileout
+    pfileout = open(f"{outfile}.ne_mu_rec.out", 'w')
     # =========================================================================
     #  Main simulations
     # =========================================================================
@@ -477,7 +479,6 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number,
             for param in tqdm(param_gen):
                 pop_stats_arr = run_simulation(param)
                 pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
-            pops_outfile.close()
         else:
             # chunk and MP
             nk = nprocs * 10
@@ -489,9 +490,10 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number,
                 pops_outfile = stats_out(pop_stats_arr, pops_outfile, nprocs)
                 print(i)
             pool.close()
-            pops_outfile.close()
+        pops_outfile.close()
     else:
         with open(f"{outfile}.sims.cmd.txt", 'w') as sims_outfile:
             for param in tqdm(param_gen):
                 mscmd = run_simulation(param)
                 sims_outfile.write(f"{mscmd} >> {outfile}.sims.out\n")
+    pfileout.close()
