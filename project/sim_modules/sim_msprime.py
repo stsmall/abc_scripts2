@@ -156,19 +156,15 @@ def run_simulation(param_df):
     # build demographic command line
     demo_events = demo_config(param_df)
 
-    ne0 = np.random.choice(scaled_Ne)
-    mu_t = np.random.choice(mu)
-    rec_t = np.random.choice(rec)
-    pfileout.write(f"{ne0}\t{mu_t}\t{rec_t}\n")
     # check demo
     if dry_run:
         checkDemo(pops, demo_events)
         return None
     else:
         trees = msp.simulate(
-                          Ne=ne0,
-                          recombination_rate=rec_t,
-                          mutation_rate=mu_t,
+                          Ne=param_df["ne_t"],
+                          recombination_rate=param_df["rec_t"],
+                          mutation_rate=param_df["mu_t"],
                           num_replicates=model_dt["loci"],
                           length=model_dt["contig_length"],
                           population_configurations=pops,
@@ -209,7 +205,8 @@ def checkDemo(pops, demo_events):
 
 
 def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
-                     outfile: str, nprocs: int, stats_config: str, dryrun: bool):
+                     outfile: str, nprocs: int, stats_config: str, dryrun: bool,
+                     order: bool):
     """Run code for simulating msprime.
 
     Parameters
@@ -260,6 +257,7 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
 
     # set mutation rate
     global mu
+    l_mu = np.nan
     mut_rate = model_dt["mutation_rate"]
     if type(mut_rate) is list:
         if len(mut_rate) == 2:
@@ -267,21 +265,26 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
             mu = np.random.uniform(low, high, sim_number)
         else:
             mu = mut_rate
+            if order:
+                l_mu = len(mu)
     else:
-        mu = [mut_rate]
+        mu = [mut_rate] * sim_number
 
     # set recombination rate
     global rec
+    l_rec = np.nan
     rec_rate = model_dt["recombination_rate"]
     if type(rec_rate) is list:
         if len(rec_rate) == 2:
             low, high = rec_rate
             rec = np.random.uniform(low, high, sim_number)
+            # rec = np.random.exponential(rec_rate, sim_number)
         else:
             rec = rec_rate
+            if order:
+                l_rec = len(rec)
     else:
-        # rec = np.random.exponential(rec_rate, sim_number)
-        rec = [rec_rate]
+        rec = [rec_rate] * sim_number
 
     # set ploidy
     global ploidy
@@ -289,6 +292,7 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
 
     # set effective pop size
     global scaled_Ne
+    l_ne = np.nan
     effective_size = model_dt["eff_size"]
     if type(effective_size) is list:
         if len(effective_size) == 2:
@@ -296,25 +300,37 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
             scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
         else:
             scaled_Ne = effective_size
+            if order:
+                l_ne = len(scaled_Ne)
     else:
-        scaled_Ne = [effective_size * ploidy]
-    global pfileout
-    pfileout = open(f"{outfile}.ne_mu_rec.out", 'w')
+        scaled_Ne = [effective_size * ploidy] * sim_number
     # =========================================================================
     #  Main simulations
     # =========================================================================
     # set up generator fx for MP
+    if order:
+        l_min = np.nanmin([l_mu, l_rec, l_ne])
+        sim_number = int(l_min)
+        print(f"order requested, setting sim_number to shortest param file: {l_min}")
+
+    with open(f"{outfile}.ne_mu_rec.out", 'w') as pfile:
+        pfile.write("Ne\tmu\trec\n")
+        for i in range(sim_number):
+            pfile.write(f"{int(scaled_Ne[i])}\t{mu[i]}\t{rec[i]}\n")
+
     event = param_df["event"].values
     pops = param_df["pops"].values
     time_arr = list(zip(*param_df["time"].values))
     value_arr = list(zip(*param_df["value"].values))
-    param_gen = ({"time": time_arr[i], "event": event, "pops": pops, "value": value_arr[i]} for i in range(sim_number))
+    param_gen = ({"ne_t": scaled_Ne[i], "mu_t": mu[i], "rec_t": rec[i],
+                  "time": time_arr[i], "event": event, "pops": pops, "value": value_arr[i]} for i in range(sim_number))
+    # param_gen = ({"time": time_arr[i], "event": event, "pops": pops, "value": value_arr[i]} for i in range(sim_number))
     param_gen = list(param_gen)
+
     # check nprocs
     if nprocs > multiprocessing.cpu_count():  # check that there are not more requested than available
         print("not {nprocs} processors available, setting to {multiprocessing.cpu_count()}")
         nprocs = multiprocessing.cpu_count()
-
     # perform sims
     global stats_dt
     global header_len
@@ -349,4 +365,3 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
         pops_outfile.close()
     else:
         print("No stats file given with msprime")
-    pfileout.close()

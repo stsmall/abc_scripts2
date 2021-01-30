@@ -104,6 +104,8 @@ def parse_args(args_in):
     parser.add_argument("--set_priors", type=str,
                         help="provide a list of priors to be reused will overide"
                         " all other parameters")
+    parser.add_argument("--in_order", action="store_true",
+                        help="will draw from rec, mu, and Ne files in order")
     parser.add_argument("--nprocs", type=int, default=1,
                         help="processors for MP")
     parser.add_argument("--dryrun", action="store_true",
@@ -126,6 +128,7 @@ def main():
     outfile = args.out
     ploidy = args.ploidy
     priors_df = args.set_priors
+    order = args.in_order
     nprocs = args.nprocs
     dry_run = args.dryrun
     stats_config = args.stats_config
@@ -145,14 +148,15 @@ def main():
     # =========================================================================
     # parses the model file and draw all parameters
     demo_df, param_df = parse_model(model_file, sim_number)
+    # load and/or write priors
     if priors_df:
         assert os.path.exists(priors_df), "no priors file found"
         param_df = pd.read_csv(
             priors_df, header=[0, 1], index_col=0, skipinitialspace=True)
-    else:
-        # write priors
+    else:  # save priors
         priors_outfile = f"{sim_path}"
         write_params(param_df, priors_outfile, sim_number, dry_run)
+    # call sims
     if "discoal" in ms_path:
         simulate_discoal(ms_path, model_dt, demo_df, param_df, sim_number,
                          sim_path, nprocs, stats_config, dry_run)
@@ -167,7 +171,7 @@ def main():
                       sim_path, nprocs, stats_config, dry_run, args.approx)
     elif "msprime" in ms_path:
         simulate_msprime(model_dt, demo_df, param_df, sim_number,
-                         sim_path, nprocs, stats_config, dry_run)
+                         sim_path, nprocs, stats_config, dry_run, order)
 
 
 if __name__ == "__main__":

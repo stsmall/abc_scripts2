@@ -25,12 +25,19 @@ def read_config_sims(configFile, ms_path):
     contig_len = int(config.getfloat(sim, "contiglen"))
     num_loci = config.getint(sim, "loci")
 
-    effective_size = config.get(sim, "effective_population_size")
-    if "," in effective_size:
-        effective_size = list(map(float, effective_size.split(",")))
-        effective_size = list(map(int, effective_size))
+    ne_size = config.get(sim, "effective_population_size")
+    if "," in ne_size:
+        effective_size = list(map(float, ne_size.split(",")))
+        effective_size = list(map(int, ne_size))
+    elif ne_size[0].isalpha():
+        if os.path.exists(ne_size):
+            print(f"loading {ne_size} ...")
+            effective_size = list(np.loadtxt(ne_size))
+        else:
+            print(f"loading {os.path.join(config_path, ne_size)} ...")
+            effective_size = list(np.loadtxt(os.path.join(config_path, ne_size)))
     else:
-        effective_size = int(float(effective_size))
+        effective_size = int(float(ne_size))
 
     recomb_rate = config.get(sim, "recombination_rate")
     if recomb_rate:
