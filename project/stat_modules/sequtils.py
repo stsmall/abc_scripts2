@@ -17,7 +17,7 @@ from project.stat_modules.msformat import discrete_positions
 def add_seq_error(pos, haps, length_bp, perfixder):
     # errors at polymorphic sites
     n_haps = haps.shape[0]
-    er1 = np.random.uniform(0, 0.00002)
+    er1 = np.random.uniform(0, 0.0000003)
     seg_err = np.random.binomial(1, er1, size=[n_haps, len(pos)])
     haps = haps - seg_err
     # 0 - 0, 0 - 1 error to -1 (to derived), 1 - 1  error to 0 (to ancestral), 1 - 0
@@ -43,7 +43,7 @@ def add_seq_error(pos, haps, length_bp, perfixder):
         ix = bisect_left(pos_ls, mp)
         pos_ls.insert(ix, mp)
         haps = np.insert(haps, ix, mon_err[:, i], axis=1)
-    print(f"{er1}\t{np.sum(seg_err)}\t{np.sum(mon_err)}\t{der_err}\n")
+    print(f"{er1}\t{np.sum(seg_err)}\t{np.sum(mon_err)}\t{der_err}")
     return np.array(pos_ls), haps
 
 
