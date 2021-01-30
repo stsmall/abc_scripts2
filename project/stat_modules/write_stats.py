@@ -28,7 +28,7 @@ def headers(out_file, stats_dt, obs=False):
     try:
         prob, sizes = [len(i) for i in stats_dt["ibs_params"]]
     except KeyError:
-        prob, sizes = 0, 0, 0
+        prob, sizes = 0, 0
     try:
         intervals = len(stats_dt["ld_params"])
     except KeyError:
