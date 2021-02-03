@@ -16,7 +16,7 @@ from scipy import stats
 from project.stat_modules.sequtils import get_seg, get_ac_seg, h2gt, pop2seg
 
 
-def d_tajD(p1, pos, gt, win_size, length_bp):
+def d_tajD(p1, pos, gt, win_size, length_bp, quants):
     """Compute the difference in Tajima’s D between two populations in moving windows.
 
     Parameters
@@ -49,6 +49,11 @@ def d_tajD(p1, pos, gt, win_size, length_bp):
     if size < 5:
         size = 5
     dtajd_ = allel.moving_delta_tajima_d(ac1_seg, ac2_seg, size=size)
+
+    if quants[0] < 0:
+        dtajdq = [np.nanmean(dtajd_)]
+    else:
+        dtajdq = np.nanquantiles(dtajd_, quants)
     return dtajd_
 
 
@@ -86,7 +91,10 @@ def fst(p1, pos, gt, quants):
     ac2_seg = ac2.compress(loc_asc, axis=0)
     num, den = allel.hudson_fst(ac1_seg, ac2_seg)
     fst_snp = num / den
-    fst_ = np.nanquantile(fst_snp, quants)
+    if quants[0] < 0:
+        fst_ = [np.nanmean(fst_snp)]
+    else:
+        fst_ = np.nanquantile(fst_snp, quants)
     return fst_
 
 
@@ -141,7 +149,7 @@ def dmin(p1, pos, gt, win_size, length_bp):
     return dmin_
 
 
-def gmin(p1, pos, gt, win_size, length_bp):
+def gmin(p1, pos, gt, win_size, length_bp, quants):
     """Calculate minimum pairwise difference between two populations.
 
     dmin / dxy
@@ -149,7 +157,13 @@ def gmin(p1, pos, gt, win_size, length_bp):
     dmin_ = dmin(p1, pos, gt, win_size, length_bp)
     dxy_ = dxy(p1, pos, gt, win_size, length_bp)
     gmin_win = dmin_/dxy_
-    return gmin_win
+
+    if quants[0] < 0:
+        gmin_ = [np.nanmean(gmin_win)]
+    else:
+        gmin_ = np.nanquantile(gmin_win, quants)
+
+    return gmin_
 
 
 def pi_fx(pos, gt, win_size, length_bp):
@@ -174,7 +188,10 @@ def dd1_2(p1, pos, gt, win_size, length_bp, quants):
     for p in [p1_, p2_]:
         gtpop = gt.take(p, axis=1)
         pi_ = pi_fx(pos, gtpop, win_size, length_bp)
-        dd12_ls.extend(np.nanquantile((dmin_/pi_), quants))
+        if quants[0] < 0:
+            dd12_ls.append(np.nanmean(dmin_/pi_))
+        else:
+            dd12_ls.extend(np.nanquantile((dmin_/pi_), quants))
     return dd12_ls
 
 
@@ -214,7 +231,10 @@ def ddRank1_2(p1, pos, gt, win_size, length_bp, quants):
         gtpop = gt.take(p, axis=1)
         pw_win = pw_within(pos, gtpop, win_size, length_bp)
         ddR12 = [stats.percentileofscore(pw, dmin_[i]) for i, pw in enumerate(pw_win)]
-        ddR12_ls.extend(np.nanquantile(ddR12, quants))
+        if quants[0] < 0:
+            ddR12_ls.append(np.nanmean(ddR12))
+        else:
+            ddR12_ls.extend(np.nanquantile(ddR12, quants))
     return ddR12_ls
 
 
@@ -233,7 +253,7 @@ def ld_window(pos, hap, win_size, length_bp):
     return ld_wins
 
 
-def zx(p1, pos, hap, win_size, length_bp, randn=500):
+def zx(p1, pos, hap, win_size, length_bp, quants, randn=500):
     """FILET statistic.
 
     Zx = (Zn_s1 + Zn_s2)/(2*Zn_sg)
@@ -259,7 +279,12 @@ def zx(p1, pos, hap, win_size, length_bp, randn=500):
     zn2 = np.array(ld_window(pos, h2, win_size, length_bp))
     zx_ = (zn1 + zn2) / (2 * zn_sg)
 
-    return zx_
+    if quants[0] < 0:
+        zxq = [np.nanmean(zx_)]
+    else:
+        zxq = np.nanquantile(zx_, quants)
+
+    return zxq
 
 
 def ibs_max(pos, hap, dmax):

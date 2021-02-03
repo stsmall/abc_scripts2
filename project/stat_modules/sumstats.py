@@ -86,7 +86,7 @@ class PopSumStats:
 
     def spatial_sfs(self):
         stats_ls = []
-        fold, agg = self.stats["spat_fold_agg"]
+        fold = self.stats["spat_fold"]
         for p in self.stats["pop_config"]:
             hap_p, pos_p, counts_p = self.split_pop(p)
             n_haplo = len(p)
@@ -97,12 +97,6 @@ class PopSumStats:
                 haps = int(len(p)/2)
                 spat_fold = spat_fold[0:haps]
                 spat_ = spat_fold
-            if agg:
-                spat_ag = spat_[0:2]
-                spat_ag.append(np.mean(spat_[3:-2]))
-                spat_ag.append(spat_[-2])
-                spat_ag.append(spat_[-1])
-                spat_ = spat_ag
             stats_ls.extend(spat_)
 
         return stats_ls
@@ -159,14 +153,14 @@ class PopSumStats:
 
         return stats_ls
 
-    def sfs(self, agg=False, fold=False):
-        fold, agg = self.stats["sfs_fold_agg"]
+    def sfs(self, fold=False):
+        fold = self.stats["sfs_fold"]
         gt = allel.HaplotypeArray(self.haparr.T)
         pos = allel.SortedIndex(self.pos)
         stats_ls = []
         for pop in self.stats["pop_config"]:
             gtpop = gt.take(pop, axis=1)
-            sfs = afs.asfs_stats(gtpop, pos, fold, agg)
+            sfs = afs.asfs_stats(gtpop, pos, fold)
             stats_ls.extend(sfs)
 
         return stats_ls
@@ -191,8 +185,8 @@ class PopSumStats:
         stats_ls = []
         for p1, p2 in combinations(self.stats["pop_config"], 2):
             gtpops = gt.take(p1+p2, axis=1)
-            flt = pwpopstats.d_tajD(len(p1), pos, gtpops, win_size, length_bp)
-            stats_ls.extend(np.nanquantiles(flt, quants))
+            flt = pwpopstats.d_tajD(len(p1), pos, gtpops, win_size, length_bp, quants)
+            stats_ls.extend(flt)
         return stats_ls
 
     def ld_2pop(self, D=0):
@@ -244,7 +238,11 @@ class PopSumStats:
         for p1, p2 in combinations(self.stats["pop_config"], 2):
             gtpops = gt.take(p1+p2, axis=1)
             flt = pwpopstats.dxy(len(p1), pos, gtpops, win_size, length_bp)
-            stats_ls.extend(np.nanquantile(flt, quants))
+            if quants[0] < 0:
+                dxy_ = [np.nanmean(flt)]
+            else:
+                dxy_ = np.nanquantile(flt, quants)
+            stats_ls.extend(dxy_)
         return stats_ls
 
     def dmin(self):
@@ -256,8 +254,12 @@ class PopSumStats:
         stats_ls = []
         for p1, p2 in combinations(self.stats["pop_config"], 2):
             gtpops = gt.take(p1+p2, axis=1)
-            flt = pwpopstats.dmin(len(p1), pos, gtpops, win_size, length_bp)
-            stats_ls.extend(np.nanquantile(flt, quants))
+            flt = pwpopstats.dmin(len(p1), pos, gtpops, win_size, length_bp, quants)
+            if quants[0] < 0:
+                dminq = [np.nanmean(flt)]
+            else:
+                dminq = np.nanquantile(flt, quants)
+            stats_ls.extend(dminq)
         return stats_ls
 
     def gmin(self):
@@ -269,8 +271,8 @@ class PopSumStats:
         stats_ls = []
         for p1, p2 in combinations(self.stats["pop_config"], 2):
             gtpops = gt.take(p1+p2, axis=1)
-            flt = pwpopstats.gmin(len(p1), pos, gtpops, win_size, length_bp)
-            stats_ls.extend(np.nanquantile(flt, quants))
+            flt = pwpopstats.gmin(len(p1), pos, gtpops, win_size, length_bp, quants)
+            stats_ls.extend(flt)
         return stats_ls
 
     def dd12(self):
@@ -307,8 +309,8 @@ class PopSumStats:
         stats_ls = []
         for p1, p2 in combinations(self.stats["pop_config"], 2):
             hap_p, pos_p, counts_p = self.split_pop(p1+p2)
-            flt = pwpopstats.zx(len(p1), pos_p, hap_p, win_size, length_bp)
-            stats_ls.extend(np.nanquantile(flt, quants))
+            flt = pwpopstats.zx(len(p1), pos_p, hap_p, win_size, length_bp, quants)
+            stats_ls.extend(flt)
         return stats_ls
 
     def IBS_maxXY(self):

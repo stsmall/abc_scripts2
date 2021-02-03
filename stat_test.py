@@ -106,18 +106,15 @@ def test_afibs():
 
 def test_sfs():
     # unfold
-    sfs = afs.asfs_stats(gtpop, pos_s, False, False)
+    sfs = afs.asfs_stats(gtpop, pos_s, False)
     ss = np.array([0.43859649, 0.16666667, 0.14912281, 0.01754386, 0.05263158,
                    0.04385965, 0.0877193, 0.01754386, 0.02631579])
     assert(all(np.isclose(ss, sfs)) is True)
     # fold
-    sfs = afs.asfs_stats(gtpop, pos_s, True, False)
+    sfs = afs.asfs_stats(gtpop, pos_s, True)
     ss = np.array([0.46491228, 0.18421053, 0.23684211, 0.06140351, 0.05263158])
     assert(all(np.isclose(ss, sfs)) is True)
-    # agg
-    sfs = afs.asfs_stats(gtpop, pos_s, False, True)
-    ss = np.array([0.43859649, 0.16666667, 0.14912281, 0.20175439, 0.01754386,
-                   0.02631579])
+
     assert(all(np.isclose(ss, sfs)) is True)
 
 
@@ -170,14 +167,6 @@ def test_spatial_sfs():
     spat_f = spat_fold
     ss = np.array([13881.,  7868., 15864., 32643., 24952.])
     assert(all(np.isclose(ss, spat_f)) is True)
-    # agg
-    spat_ag = list(spat_[0:3])
-    spat_ag.append(np.mean(spat_[3:-2]))
-    spat_ag.append(spat_[-2])
-    spat_ag.append(spat_[-1])
-    spat_a = np.array(spat_ag)
-    ss = np.array([1419.0, 7868.0, 5648.0, 13833.75, 0.0, 12462.0])
-    assert(all(np.isclose(ss, spat_a)) is True)
 
 
 def test_ld():
@@ -231,7 +220,7 @@ def test_dmin():
 
 
 def test_gmin():
-    flt = pwpopstats.gmin(len(pop1), pos_s, gt, win_size, length_bp)
+    flt = pwpopstats.gmin(len(pop1), pos_s, gt, win_size, length_bp, quants)
     stats_ls = np.quantile(flt, quants)
     ss = np.array([0.09416196, 0.35460993, 0.40257649, 0.48543689, 0.49382716])
     assert(all(np.isclose(ss, stats_ls)) is True)
@@ -251,7 +240,7 @@ def test_ddRank12():
 
 
 def test_Zx():
-    flt = pwpopstats.zx(len(pop1), pos, haps, win_size, length_bp)
+    flt = pwpopstats.zx(len(pop1), pos, haps, win_size, length_bp, quants)
     stats_ls = np.nanquantile(flt, quants)
     ss = np.array([0. , 0.21724138, 0.65702271, 1.21374723, 1.78181818])
     assert(all(np.isclose(ss, stats_ls)) is True)

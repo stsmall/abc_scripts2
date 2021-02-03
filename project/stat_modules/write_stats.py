@@ -37,19 +37,15 @@ def headers(out_file, stats_dt, obs=False):
     sub_pops = [len(i) for i in stats_dt["pop_config"]]
     n_pops = len(sub_pops)
     quants = len(stats_dt["pw_quants"])
-    sfsfold, sfsagg = stats_dt["sfs_fold_agg"]
-    spatfold, spatagg = stats_dt["spat_fold_agg"]
+    sfsfold = stats_dt["sfs_fold"]
+    spatfold = stats_dt["spat_fold"]
     afibsfold = stats_dt["afibs_fold"]
     sfs_n = [sub-1 for sub in sub_pops]
     if sfsfold:
         sfs_n = [floor((sub)/2) for sub in sub_pops]
-    if sfsagg:
-        sfs_n = [6] * n_pops
     spat_n = [sub-1 for sub in sub_pops]
     if spatfold:
         spat_n = [floor((sub)/2) for sub in sub_pops]
-    if spatagg:
-        spat_n = [6] * n_pops
     afibs_n = [sub-2 for sub in sub_pops]
     if afibsfold:
         afibs_n = [floor((sub-1)/2) for sub in sub_pops]

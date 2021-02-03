@@ -195,10 +195,8 @@ def read_config_stats(configFile):
         assert max(size_list) <= n_haps
     sim_dt["spatial_sfs"] = config.getboolean(pop1, "compute_spatial_SFS")
     spatfold = config.getboolean(pop1, "fold_spatial_SFS")
-    spatagg = config.getboolean(pop1, "aggregate_spatial_SFS")
     sim_dt["sfs"] = config.getboolean(pop1, "compute_SFS")
     sfsfold = config.getboolean(pop1, "fold_SFS")
-    sfsagg = config.getboolean(pop1, "aggregate_SFS")
     sim_dt["ld"] = config.getboolean(pop1, "compute_LD")
     if sim_dt["ld"]:
         nb_times = config.getint(pop1, "pop_time_changes")
@@ -228,8 +226,8 @@ def read_config_stats(configFile):
                 "win_size2": int(win_size_2),
                 "calc_stats": stat_list,
                 "afibs_fold": afibsfold,
-                "spat_fold_agg": (spatfold, spatagg),
-                "sfs_fold_agg": (sfsfold, sfsagg),
+                "spat_fold_agg": (spatfold),
+                "sfs_fold_agg": (sfsfold),
                 "pw_quants": quant_list
                 }
     if "ibs" in stat_list:

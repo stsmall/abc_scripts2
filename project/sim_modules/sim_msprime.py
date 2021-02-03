@@ -264,9 +264,13 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
             low, high = mut_rate
             mu = np.random.uniform(low, high, sim_number)
         else:
-            mu = mut_rate
-            if order:
+            if len(mut_rate) < sim_number:
+                mu = np.random.choice(mut_rate, sim_number)
+            elif order:
                 l_mu = len(mu)
+            else:
+                mu = mut_rate
+
     else:
         mu = [mut_rate] * sim_number
 
@@ -280,9 +284,12 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
             rec = np.random.uniform(low, high, sim_number)
             # rec = np.random.exponential(rec_rate, sim_number)
         else:
-            rec = rec_rate
-            if order:
+            if len(rec_rate) < sim_number:
+                rec = np.random.choice(rec_rate, sim_number)
+            elif order:
                 l_rec = len(rec)
+            else:
+                rec = rec_rate
     else:
         rec = [rec_rate] * sim_number
 
@@ -299,9 +306,12 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
             low, high = effective_size
             scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
         else:
-            scaled_Ne = effective_size
-            if order:
+            if len(effective_size) < sim_number:
+                scaled_Ne = np.random.choice(effective_size, sim_number)
+            elif order:
                 l_ne = len(scaled_Ne)
+            else:
+                scaled_Ne = effective_size
     else:
         scaled_Ne = [effective_size * ploidy] * sim_number
     # =========================================================================

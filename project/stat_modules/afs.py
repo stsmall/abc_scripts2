@@ -59,8 +59,8 @@ def spatial_histo_fast(pos, count, M, dmax=np.inf):
     return dist
 
 
-def asfs_stats(gt, pos, fold, agg):
-    """Calculate the aggregate allele frequence spectrum.
+def asfs_stats(gt, pos, fold):
+    """Calculate the allele frequence spectrum.
 
     With many individuals the SFS becomes unwieldy, here I collapse the
     intermediate frequencies into 1 bin. This differs from the one above by
@@ -75,8 +75,6 @@ def asfs_stats(gt, pos, fold, agg):
         DESCRIPTION.
     pos : TYPE
         DESCRIPTION.
-    agg : bool
-        if True, return an aggregate SFS, 0,1,2, 3:-2, -2, -1
     fold : bool
         if True, return folded SFS
 
@@ -94,12 +92,6 @@ def asfs_stats(gt, pos, fold, agg):
         sfsp = (allel.sfs(gtseg.count_alleles()[:, 1], gtseg.shape[1]))[1:-1]
     tots = np.sum(sfsp)
     sfs = sfsp / tots
-    if agg:
-        # TODO: test best binning.
-        sfs[3] = sum(sfs[3:-2])
-        sfs[4] = sfs[-2]
-        sfs[5] = sfs[-1]
-        sfs = sfs[:6]
 
     return sfs
 
