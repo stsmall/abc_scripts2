@@ -226,8 +226,8 @@ def read_config_stats(configFile):
                 "win_size2": int(win_size_2),
                 "calc_stats": stat_list,
                 "afibs_fold": afibsfold,
-                "spat_fold_agg": (spatfold),
-                "sfs_fold_agg": (sfsfold),
+                "spat_fold": spatfold,
+                "sfs_fold": sfsfold,
                 "pw_quants": quant_list
                 }
     if "ibs" in stat_list:
