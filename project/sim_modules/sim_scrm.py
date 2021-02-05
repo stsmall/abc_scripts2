@@ -124,7 +124,7 @@ def model_scrm(params, ne0):
             pop2 = int(pop2) + 1
             if all(i not in sourcelist for i in [pop1, pop2]):
                 prop = row["value"]
-                dem_list.append(f"-eps {new_time} {pop1} {pop2} {prop}")
+                dem_list.append(f"-eps {new_time} {pop2} {pop1} {1-prop}")
         elif "m" in event:
             pop1, pop2 = row["pops"]
             pop1 = int(pop1) + 1
