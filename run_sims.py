@@ -137,7 +137,7 @@ def main():
     out_path = os.path.split(model_dir)[0]
     if not outfile:
         outfile = os.path.split(model_dir)[1]
-    sim_path = os.path.join(out_path, f"{outfile}.{sim_number}")
+    sim_path = os.path.join(out_path, f"{outfile}")
     # =========================================================================
     #  Config parser
     # =========================================================================
@@ -154,7 +154,7 @@ def main():
         param_df = pd.read_csv(
             priors_df, header=[0, 1], index_col=0, skipinitialspace=True)
     else:  # save priors
-        priors_outfile = f"{sim_path}"
+        priors_outfile = f"{sim_path}.{sim_number}"
         write_params(param_df, priors_outfile, sim_number, dry_run)
     # call sims
     if "discoal" in ms_path:

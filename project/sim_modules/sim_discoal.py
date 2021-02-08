@@ -32,27 +32,29 @@ def selection_parse(ms_dt):
         parameters in discoal syntax
 
     """
+    sel_list = []
     ne0 = ms_dt["Ne0"]
-    rho_loc = ms_dt["rho_loc"]
     # sel params
     sel_dict = model_dt["sel_dict"]
     pop0_Ne = sel_dict["pop0_Ne"]
     if not pop0_Ne:
         pop0_Ne = ne0
+
     sweep_Ne = sel_dict["sweep_Ne"]
+    hide = sel_dict["hide"]
+    if hide:
+        sel_list.append("-h")
+    if sweep_Ne:
+        sel_list.append(f"-N {sweep_Ne}")
+
+    # =========================================================================
+    #  required
+    # =========================================================================
     alpha = sel_dict["alpha"]
-    freq = sel_dict["freq"]
     sweep_stop = sel_dict["sweep_stop"]
     sweep_site = sel_dict["sweep_site"]
-    part_freq = sel_dict["part_freq"]
-    adapt = sel_dict["adapt"]
-    hide = sel_dict["hide"]
 
-    sel_list = []
-
-    if sweep_Ne > 0:
-        sel_list.append(f"-N {sweep_Ne}")
-    # sweep time
+    # *sweep time
     if type(sweep_stop) == list:
         ws_l = sweep_stop[0]/(4 * ne0)
         ws_h = sweep_stop[1]/(4 * ne0)
@@ -60,7 +62,8 @@ def selection_parse(ms_dt):
     else:
         tau = sweep_stop/(4 * ne0)
         sel_list.append(f"-ws {tau}")
-    # sel coeff
+
+    # *sel coeff
     if type(alpha) == list:
         a_low = alpha[0] * 2 * pop0_Ne
         a_high = alpha[1] * 2 * pop0_Ne
@@ -68,33 +71,8 @@ def selection_parse(ms_dt):
     else:
         a = alpha * 2 * pop0_Ne
         sel_list.append(f"-a {a}")
-    # offscreen sweep
-    left_rho = sel_dict["left_rho"]
-    if left_rho[1] > 0:
-        time, scale = left_rho
-        sel_list.append(f"-ls {time/(4*ne0)} {scale*rho_loc}")
-    # recurrent to the left
-    rrh_left = sel_dict["rrh_left"]
-    if rrh_left > 0:
-        sel_list.append(f"-L {rrh_left}")
-    # recurrent at locus
-    rrh_loc = sel_dict["rrh_loc"]
-    if rrh_loc > 0:
-        sel_list.append(f"-R {rrh_loc}")
-    # starting freq
-    if type(freq) == list:
-        f_l, f_h = freq
-        assert f_l >= 0
-        assert f_h <= 1
-        assert f_l < f_h
-        sel_list.append(f"-Pf {f_l} {f_h}")
-    elif freq > 0:
-        assert freq <= 1
-        sel_list.append(f"-f {freq}")
-    else:
-        # hard sweep
-        pass
-    # sweep site
+
+    # *sweep site
     if type(sweep_site) == list:
         s_l, s_h = sweep_site
         assert s_l >= 0
@@ -104,30 +82,67 @@ def selection_parse(ms_dt):
     else:
         assert 0 <= sweep_site <= 1
         sel_list.append(f"-x {sweep_site}")
+
+    # =========================================================================
+    # soft and partial sweeps
+    # =========================================================================
+    freq = sel_dict["freq"]
+    part_freq = sel_dict["part_freq"]
+
+    # starting freq for soft sweep
+    if freq:
+        if type(freq) == list:
+            f_l, f_h = freq
+            assert f_l >= 0
+            assert f_h <= 1
+            assert f_l < f_h
+            sel_list.append(f"-Pf {f_l} {f_h}")
+        elif freq > 0:
+            assert freq <= 1
+            sel_list.append(f"-f {freq}")
+
     # partial sweep freq
-    if type(part_freq) == list:
-        p_l, p_h = part_freq
-        assert p_l >= 0
-        assert p_h <= 1
-        assert p_l < p_h
-        sel_list.append(f"-Pc {p_l} {p_h}")
-    elif part_freq > 0:
-        assert part_freq <= 1
-        sel_list.append(f"-c {part_freq}")
-    else:
-        # no partial sweep
-        pass
+    if part_freq:
+        if type(part_freq) == list:
+            p_l, p_h = part_freq
+            assert p_l >= 0
+            assert p_h <= 1
+            assert p_l < p_h
+            sel_list.append(f"-Pc {p_l} {p_h}")
+        elif part_freq > 0:
+            assert part_freq <= 1
+            sel_list.append(f"-c {part_freq}")
+
+    # =========================================================================
+    # linked selection
+    # =========================================================================
+    # offscreen sweep
+    rho_loc = ms_dt["rho_loc"]
+    left_rho = sel_dict["left_rho"]
+
+    if left_rho:
+        if left_rho[1]:
+            time, scale = left_rho
+            sel_list.append(f"-ls {time/(4*ne0)} {scale*rho_loc}")
+    # recurrent to the left
+    rrh_left = sel_dict["rrh_left"]
+    if rrh_left:
+        sel_list.append(f"-L {rrh_left}")
+    # recurrent at locus
+    rrh_loc = sel_dict["rrh_loc"]
+    if rrh_loc:
+        sel_list.append(f"-R {rrh_loc}")
+    # =========================================================================
+    # adapative recurrent
+    # =========================================================================
     # reccurrent adaptive mut
-    if type(adapt) == list:
-        a_l, a_h = adapt
-        sel_list.append(f"-PuA {a_l} {a_h}")
-    elif adapt > 0:
-        sel_list.append(f"-uA {adapt}")
-    else:
-        # no recurrent adaptive mutation
-        pass
-    if hide:
-        sel_list.append("-h")
+    adapt = sel_dict["adapt"]
+    if adapt:
+        if type(adapt) == list:
+            a_l, a_h = adapt
+            sel_list.append(f"-PuA {a_l} {a_h}")
+        elif adapt > 0:
+            sel_list.append(f"-uA {adapt}")
 
     return sel_list
 
@@ -297,6 +312,7 @@ def run_simulation(params):
     # build demographic command line
     dem_events = model_discoal(params, ms_dt["Ne0"])
 
+    seed_arr = np.random.randint(1, 2**31, 2)
     # gather command line args
     ms_params = {
                 'ms': ms_exe,
@@ -310,11 +326,12 @@ def run_simulation(params):
                 'ne_subpop': ms_dt["ne_subpop"],
                 'migmat': ms_dt["mig_matrix"],
                 'demo': " ".join(dem_events),
-                'sel': " ".join(sel_list)
+                'sel': " ".join(sel_list),
+                'seed': f"{seed_arr[0]} {seed_arr[1]}"
                 }
 
     ms_base = ("{ms} {nhaps} {loci} {basepairs} -t {theta} -r {rho} "
-               "{gen_cov} {subpops} {ne_subpop} {migmat} {demo} {sel}")
+               "{gen_cov} {subpops} {ne_subpop} {migmat} {demo} {sel} -d {seed} ")
     mscmd = ms_base.format(**ms_params)
     if dry_run:
         ms_cmd = " ".join(mscmd.split())
@@ -440,7 +457,7 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number,
     else:
         scaled_Ne = [effective_size * ploidy]
     global pfileout
-    pfileout = open(f"{outfile}.ne_mu_rec.out", 'w')
+    pfileout = open(f"{outfile}.{sim_number}.ne_mu_rec.out", 'w')
     # =========================================================================
     #  Main simulations
     # =========================================================================
@@ -471,7 +488,7 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number,
         stats_dt = read_config_stats(stats_config)
         statsconfig = stats_config
         # write headers
-        pops_outfile = open(f"{outfile}.pop_stats.txt", 'w')
+        pops_outfile = open(f"{outfile}.{sim_number}.pop_stats.txt", 'w')
         pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt)
         header_len = header_
         header = header_ls
@@ -492,8 +509,8 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number,
             pool.close()
         pops_outfile.close()
     else:
-        with open(f"{outfile}.sims.cmd.txt", 'w') as sims_outfile:
+        with open(f"{outfile}.{sim_number}.sims.cmd.txt", 'w') as sims_outfile:
             for param in tqdm(param_gen):
                 mscmd = run_simulation(param)
-                sims_outfile.write(f"{mscmd} >> {outfile}.sims.out\n")
+                sims_outfile.write(f"{mscmd} >> {outfile}\n")
     pfileout.close()

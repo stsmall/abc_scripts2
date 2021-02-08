@@ -116,10 +116,10 @@ def read_config_sims(configFile, ms_path):
                     }
 
         for key in sel_dict.keys():
-            if "," in sel_dict[key]:
-                sel_dict[key] = list(map(float, sel_dict[key].split(",")))
-            else:
-                if "." in sel_dict[key]:
+            if sel_dict[key]:
+                if "," in sel_dict[key]:
+                    sel_dict[key] = list(map(float, sel_dict[key].split(",")))
+                elif "." in sel_dict[key]:
                     sel_dict[key] = float(sel_dict[key])
                 else:
                     sel_dict[key] = int(sel_dict[key])
