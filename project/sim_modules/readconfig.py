@@ -28,7 +28,7 @@ def read_config_sims(configFile, ms_path):
     ne_size = config.get(sim, "effective_population_size")
     if "," in ne_size:
         effective_size = list(map(float, ne_size.split(",")))
-        effective_size = list(map(int, ne_size))
+        effective_size = list(map(int, effective_size))
     elif ne_size[0].isalpha():
         if os.path.exists(ne_size):
             print(f"loading {ne_size} ...")

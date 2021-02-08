@@ -56,8 +56,8 @@ def selection_parse(ms_dt):
 
     # *sweep time
     if type(sweep_stop) == list:
-        ws_l = sweep_stop[0]/(4 * ne0)
-        ws_h = sweep_stop[1]/(4 * ne0)
+        ws_l = sweep_stop[0]/(4 * pop0_Ne)
+        ws_h = sweep_stop[1]/(4 * pop0_Ne)
         sel_list.append(f"-ws 0 -Pu {ws_l} {ws_h}")
     else:
         tau = sweep_stop/(4 * ne0)
