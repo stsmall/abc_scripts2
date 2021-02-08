@@ -194,7 +194,7 @@ def run_simulation(param_df):
 
     # build demographic command line
     dem_events = model_msmove(param_df, ms_dt["Ne0"])
-
+    seed_arr = np.random.randint(1, 2**31, 2)
     # gather command line args
     ms_params = {
                 'ms': ms_exe,
@@ -208,10 +208,11 @@ def run_simulation(param_df):
                 'ne_subpop': ms_dt["ne_subpop"],
                 'migmat': ms_dt["mig_matrix"],
                 'demo': " ".join(dem_events),
+                'seed': f"{seed_arr[0]} {seed_arr[1]}"
                 }
 
     ms_base = ("{ms} {nhaps} {loci} -t {theta} -r {rho} {basepairs} "
-               "{gen_cov} {subpops} {ne_subpop} {migmat} {demo}")
+               "{gen_cov} {subpops} {ne_subpop} {migmat} {demo} ")
     mscmd = ms_base.format(**ms_params)
     if dry_run:
         ms_cmd = " ".join(mscmd.split())
@@ -390,8 +391,8 @@ def simulate_msmove(ms_path, model_dict, demo_dataframe, param_df, sim_number,
             pool.close()
         pops_outfile.close()
     else:
-        with open(f"{outfile}.sims.cmd.txt", 'w') as sims_outfile:
+        with open(f"{outfile}.{sim_number}.sims.cmd.txt", 'w') as sims_outfile:
             for param in tqdm(param_gen):
                 mscmd = run_simulation(param)
-                sims_outfile.write(f"{mscmd} >> {outfile}.sims.out\n")
+                sims_outfile.write(f"{mscmd} >> {outfile}\n")
     pfileout.close()

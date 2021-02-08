@@ -173,7 +173,7 @@ def run_simulation(param_df):
 
     # build demographic command line
     dem_events = model_scrm(param_df, ms_dt["Ne0"])
-
+    seed_arr = np.random.randint(1, 2**31, 2)
     # gather command line args
     ms_params = {
                 'ms': ms_exe,
@@ -186,6 +186,7 @@ def run_simulation(param_df):
                 'ne_subpop': ms_dt["ne_subpop"],
                 'migmat': ms_dt["mig_matrix"],
                 'demo': " ".join(dem_events),
+                'seed': f"{seed_arr[0]} {seed_arr[1]}"
                 }
 
     if dry_run:
@@ -204,7 +205,7 @@ def run_simulation(param_df):
         # exact -l -1 or 100000
         # good choices: scrm_l = "-l 100r"; scrm_l = "-l 250r"
         ms_base = ("{ms} {nhaps} {loci} -t {theta} -r {rho} {basepairs} "
-                   "{subpops} {ne_subpop} {migmat} {demo} " + scrm_l)
+                   "{subpops} {ne_subpop} {migmat} {demo} -seed {seed}" + scrm_l)
         mscmd = ms_base.format(**ms_params)
         length_bp = stats_dt["length_bp"]
         pfe = stats_dt["perfixder"]
@@ -374,8 +375,8 @@ def simulate_scrm(ms_path, model_dict, demo_dataframe, param_df, sim_number,
             pool.close()
         pops_outfile.close()
     else:
-        with open(f"{outfile}.sims.cmd.txt", 'w') as sims_outfile:
+        with open(f"{outfile}.{sim_number}.sims.cmd.txt", 'w') as sims_outfile:
             for param in tqdm(param_gen):
                 mscmd = run_simulation(param)
-                sims_outfile.write(f"{mscmd} >> {outfile}.sims.out\n")
+                sims_outfile.write(f"{mscmd} >> {outfile}\n")
     pfileout.close()
