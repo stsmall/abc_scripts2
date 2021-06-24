@@ -147,13 +147,11 @@ def parse_model(in_file, size):
                         param_dt["tbi"].append(x_lin[0])
                         param_dt["event"].append(x_lin[1])
                         param_dt["pops"].append(x_lin[2].split("_"))
-                        ix = [i for i, param in enumerate(x_lin) if "r" in param]
+                        ix = [i for i, param in enumerate(x_lin) if "r" in param[0]]
                         if len(ix) > 1:
-                            breakpoint()
                             param_dt["time"].append(x_lin[ix[0]:ix[0]+3])
                             param_dt["value"].append(x_lin[ix[1]:])
                         else:
-                            breakpoint()
                             param_dt["time"].append(x_lin[ix[0]:ix[0]+3])
                             param_dt["value"].append([])
                     elif line.startswith("cond"):
