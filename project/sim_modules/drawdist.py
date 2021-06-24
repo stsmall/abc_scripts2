@@ -7,6 +7,7 @@ Created on Wed Dec 16 16:53:16 2020
 import numpy as np
 from math import log
 import os
+import sys
 
 class DrawDist(object):
     """draws values from distribution."""
@@ -199,5 +200,8 @@ class DrawDist(object):
         """Draws directly from a file with posteriors of parameter."""
         if os.path.exists(file):
             posterior_dist = np.loadtxt(file, delimiter="\t")
-        posterior_param = posterior_dist[:, column]
+            posterior_param = posterior_dist[:, column]
+        else:
+            print("file does not exist")
+            sys.exit()
         return np.random.choice(posterior_param, size)
