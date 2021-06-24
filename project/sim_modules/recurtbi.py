@@ -10,7 +10,7 @@ avail_dist = {"unif": ("low", "high"), "log_unif": ("low", "high"),
               "unif_int": ("low", "high"), "log_unif_int": ("low", "high"),
               "log_normal": ("mu", "sigma"), "norm_int": ("mu", "sigma"),
               "log_norm_int": ("mu", "sigma"), "exp": ("scale", "scale"),
-              "beta": ("a", "b"), "constant": ("c", "c")}
+              "beta": ("a", "b"), "constant": ("c", "c"), "posterior":("file", "col")}
 
 cn = 0
 
