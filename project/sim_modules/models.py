@@ -99,7 +99,13 @@ def draw_params(param_dt, size: int, condition_ls):
             dist, low, high = tvalue
             assert dist[1:] in avail_dist, "dist not recognized"
             draw = getattr(DrawDist(), dist[1:])
-            value_ls.append(draw(float(low), float(high), size))
+            try:
+                value_ls.append(draw(float(low), float(high), size))
+            except ValueError:
+                if type(low) is str:
+                    value_ls.append(draw(low, int(high), size))
+                else:
+                    breakpoint()
         else:
             value_ls.append([np.nan]*size)
     param_dt["value"] = value_ls

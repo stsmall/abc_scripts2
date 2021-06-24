@@ -30,7 +30,9 @@ def itdict(dt, size):
                 else:
                     draw = getattr(DrawDist(), dist[1:])
                     assert dist[1:] in avail_dist, "dist not recognized"
-                    if type(low) is str and type(high) is str:
+                    if dist[1:] == "posterior":
+                        dt[k] = draw(low, int(high), size)
+                    elif type(low) is str and type(high) is str:
                         # low is str, high is str   '0' '123'
                         dt[k] = draw(float(low), float(high), size)
                     elif type(low) is str and len(high) == size:
