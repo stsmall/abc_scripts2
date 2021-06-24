@@ -148,6 +148,7 @@ def parse_model(in_file, size):
                         param_dt["event"].append(x_lin[1])
                         param_dt["pops"].append(x_lin[2].split("_"))
                         ix = [i for i, param in enumerate(x_lin) if "r" in param]
+                        breakpoint()
                         if len(ix) > 1:
                             param_dt["time"].append(x_lin[ix[0]:ix[0]+3])
                             param_dt["value"].append(x_lin[ix[1]:])
