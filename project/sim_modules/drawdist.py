@@ -6,7 +6,7 @@ Created on Wed Dec 16 16:53:16 2020
 """
 import numpy as np
 from math import log
-
+import os
 
 class DrawDist(object):
     """draws values from distribution."""
