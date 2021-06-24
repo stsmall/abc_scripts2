@@ -6,10 +6,12 @@ Created on Wed Dec 16 20:32:28 2020
 """
 import multiprocessing
 import subprocess
-from math import ceil
+import sys
+from math import ceil, log
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import fsolve
 from tqdm import tqdm
 
 from project.sim_modules.readconfig import read_config_stats
@@ -33,46 +35,104 @@ def selection_parse(ms_dt):
 
     """
     sel_list = []
-    ne0 = ms_dt["Ne0"]
+
     # sel params
     sel_dict = model_dt["sel_dict"]
+    # effective popsize
     pop0_Ne = sel_dict["pop0_Ne"]
     if not pop0_Ne:
-        pop0_Ne = ne0
-
+        pop0_Ne = ms_dt["Ne0"]
+    # specific sweep Ne
     sweep_Ne = sel_dict["sweep_Ne"]
-    hide = sel_dict["hide"]
-    if hide:
-        sel_list.append("-h")
     if sweep_Ne:
         sel_list.append(f"-N {sweep_Ne}")
 
     # =========================================================================
     #  required
     # =========================================================================
-    alpha = sel_dict["alpha"]
+    sweep_start = sel_dict["sweep_start"]
     sweep_stop = sel_dict["sweep_stop"]
-    sweep_site = sel_dict["sweep_site"]
-
-    # *sweep time
-    if type(sweep_stop) == list:
-        ws_l = sweep_stop[0]/(4 * pop0_Ne)
-        ws_h = sweep_stop[1]/(4 * pop0_Ne)
-        sel_list.append(f"-ws 0 -Pu {ws_l} {ws_h}")
-    else:
-        tau = sweep_stop/(4 * ne0)
-        sel_list.append(f"-ws {tau}")
-
-    # *sel coeff
+    # set selection
+    alpha = sel_dict["alpha"]
     if type(alpha) == list:
-        a_low = alpha[0] * 2 * pop0_Ne
-        a_high = alpha[1] * 2 * pop0_Ne
-        sel_list.append(f"-Pa {a_low} {a_high}")
-    else:
-        a = alpha * 2 * pop0_Ne
-        sel_list.append(f"-a {a}")
+        alpha_low = alpha[0]
+        alpha_high = alpha[1]
+        alpha = np.random.uniform(alpha_low, alpha_high)
+    assert alpha/(2*pop0_Ne) > 1/pop0_Ne
+    # parse mode
+    mode = sel_dict["mode"]
+    if mode == 1:
+        if type(sweep_stop) == list:
+            end_low = sweep_stop[0]
+            end_high = sweep_stop[1]
+            end_time = np.random.uniform(end_low, end_high)
+        else:
+            end_time = sweep_stop
+        # solve for alpha that meets sweep_start and sweep_stop
+        sojourn = sweep_start - end_time
+        func = lambda alpha: (sojourn/(4*pop0_Ne)) - (log(alpha)/alpha)
+        alpha = fsolve(func, 250)[0]
+        assert alpha/(2*pop0_Ne) > 1/pop0_Ne
+    elif mode == 2:
+        # estimate end_time given sweep_start and alpha
+        sojourn = 4 * pop0_Ne * log(alpha)/alpha
+        end_time = sweep_start - sojourn
+        try:
+            assert end_time > 0
+        except AssertionError:
+            sojourn = sweep_start
+            func = lambda alpha: (sojourn/(4*pop0_Ne)) - (log(alpha)/alpha)
+            alpha_exp = fsolve(func, 250)[0]
+            sys.exit(f"given alpha {alpha}, required min alpha for sojourn {alpha_exp}")
+    elif mode == 3 or not mode:
+        # start time will be set by discoal to meet conditions of fixation at sweep_stop
+        if type(sweep_stop) == list:
+            end_low = sweep_stop[0]
+            end_high = sweep_stop[1]
+            end_time = np.random.uniform(end_low, end_high)
+        else:
+            end_time = sweep_stop
+    sel_list.append(f"-ws {end_time/(4 * pop0_Ne)}")
+    sel_list.append(f"-a {alpha}")
+    # =========================================================================
+    # soft and partial sweeps
+    # =========================================================================
+    # starting freq for soft sweep
+    start_freq = sel_dict["freq"]  # 0 means 'hard sweep', freq=1/Ne
+    if start_freq:
+        if type(start_freq) == list:
+            freq_low, freq_high = start_freq
+            assert freq_low > 0
+            assert freq_high < 1
+            if freq_low <= 1/alpha:
+                freq_low = (1/alpha) + .01
+            assert freq_low < freq_high
+            start_freq = np.random.uniform(freq_low, freq_high)
+        elif start_freq > 0:
+            if start_freq <= 1/alpha:
+                start_freq = (1/alpha) + 0.01
+            assert start_freq < 1
+            assert start_freq > 0
+        sel_list.append(f"-f {start_freq}")
 
-    # *sweep site
+    # partial sweep freq, allel didnt fix before selection stopped
+    part_freq = sel_dict["part_freq"]
+    if part_freq:
+        if type(part_freq) == list:
+            part_low, part_high = part_freq
+            assert part_l >= 0
+            assert part_h <= 1
+            assert part_l < part_h
+        elif part_freq > 0:
+            assert part_freq <= 1
+        sel_list.append(f"-c {part_freq}")
+
+    # sweep site in output
+    hide = sel_dict["hide"]
+    if hide:
+        sel_list.append("-h")
+    # location of sweep site
+    sweep_site = sel_dict["sweep_site"]
     if type(sweep_site) == list:
         s_l, s_h = sweep_site
         assert s_l >= 0
@@ -82,36 +142,6 @@ def selection_parse(ms_dt):
     else:
         assert 0 <= sweep_site <= 1
         sel_list.append(f"-x {sweep_site}")
-
-    # =========================================================================
-    # soft and partial sweeps
-    # =========================================================================
-    freq = sel_dict["freq"]
-    part_freq = sel_dict["part_freq"]
-
-    # starting freq for soft sweep
-    if freq:
-        if type(freq) == list:
-            f_l, f_h = freq
-            assert f_l >= 0
-            assert f_h <= 1
-            assert f_l < f_h
-            sel_list.append(f"-Pf {f_l} {f_h}")
-        elif freq > 0:
-            assert freq <= 1
-            sel_list.append(f"-f {freq}")
-
-    # partial sweep freq
-    if part_freq:
-        if type(part_freq) == list:
-            p_l, p_h = part_freq
-            assert p_l >= 0
-            assert p_h <= 1
-            assert p_l < p_h
-            sel_list.append(f"-Pc {p_l} {p_h}")
-        elif part_freq > 0:
-            assert part_freq <= 1
-            sel_list.append(f"-c {part_freq}")
 
     # =========================================================================
     # linked selection
@@ -144,6 +174,7 @@ def selection_parse(ms_dt):
         elif adapt > 0:
             sel_list.append(f"-uA {adapt}")
 
+
     return sel_list
 
 
@@ -165,7 +196,7 @@ def sim_syntax():
     # calc theta
     theta_loc = 4 * ne0 * mu_t * locus_len
     # calc rho rate
-    rho_loc = 4 * ne0 * rec_t * locus_len
+    rho_loc = 4 * ne0 * rec_t * (locus_len - 1)
 
     # gene conversion
     gen_conversion = model_dt["gene_conversion"][0]
@@ -453,7 +484,7 @@ def simulate_discoal(ms_path, model_dict, demo_dataframe, param_df, sim_number,
             low, high = effective_size
             scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
         else:
-            scaled_Ne = effective_size
+            scaled_Ne = list(effective_size * ploidy)
     else:
         scaled_Ne = [effective_size * ploidy]
     global pfileout

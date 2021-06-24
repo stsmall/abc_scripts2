@@ -194,3 +194,10 @@ class DrawDist(object):
         """
         assert low == high, f"constant needs to be equal {low} != {high}"
         return np.full(size, low)
+
+    def posterior(self, file, column, size):
+        """Draws directly from a file with posteriors of parameter."""
+        if os.path.exists(file):
+            posterior_dist = np.loadtxt(file, delimiter="\t")
+        posterior_param = posterior_dist[:, column]
+        return np.random.choice(posterior_param, size)

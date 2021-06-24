@@ -254,7 +254,7 @@ class PopSumStats:
         stats_ls = []
         for p1, p2 in combinations(self.stats["pop_config"], 2):
             gtpops = gt.take(p1+p2, axis=1)
-            flt = pwpopstats.dmin(len(p1), pos, gtpops, win_size, length_bp, quants)
+            flt = pwpopstats.dmin(len(p1), pos, gtpops, win_size, length_bp)
             if quants[0] < 0:
                 dminq = [np.nanmean(flt)]
             else:

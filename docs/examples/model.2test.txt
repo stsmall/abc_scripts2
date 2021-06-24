@@ -21,12 +21,12 @@ tbi19 Ne 1 rconstant 40000 40000 runif_int 10000 100000
 tbi20 Ne 1 rconstant 50000 50000 runif_int 10000 100000
 tbi21 Ne 1 rconstant 60000 60000 runif_int 10000 100000
 tbi22 Ne 1 rconstant 70000 70000 runif_int 10000 100000
-tbi23 ms 01 runif_int 550 1500 runif 0 0.000203
-tbi24 ms 01 runif_int 3000 5000 runif 0 9.3E-05
-tbi25 ms 01 runif_int 5001 7000 runif 0 0.000178
-tbi26 ms 01 runif_int 7001 7500 rconstant 0 0
-tbi27 ej 01 runif_int 5000 10000
-tbi28 ej 12 runif_int 40000 90000
+tbi23 ms 0_1 runif_int 550 1500 runif 0 0.000203
+tbi24 ms 0_1 runif_int 3000 5000 runif 0 9.3E-05
+tbi25 ms 0_1 runif_int 5001 7000 runif 0 0.000178
+tbi26 ms 0_1 runif_int 7001 7500 rconstant 0 0
+tbi27 ej 0_1 runif_int 5000 10000
+tbi28 ej 1_2 runif_int 40000 90000
 # Kir demography
 # Fol demography
 # moz demography

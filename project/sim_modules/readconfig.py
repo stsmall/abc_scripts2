@@ -89,30 +89,34 @@ def read_config_sims(configFile, ms_path):
     if config.has_section("positive_selection"):
         assert "discoal" in ms_path, "discoal needed for positive selection"
         sel = "positive_selection"
-        hide = config.getboolean(sel, "hide")
-        alpha = config.get(sel, "sel_coeff")
-        freq = config.get(sel, "soft_freq")
-        sweep_stop = config.get(sel, "sweep_time")
+        pop0_Ne = config.get(sel, "sweep_population_Ne")
+        mode = config.get(sel, "mode")
+        alpha = config.get(sel, "alpha")
+        sweep_start = config.get(sel, "sweep_start")
+        sweep_end = config.get(sel, "sweep_end")
+        allele_freq = config.get(sel, "allele_freq")
+        partial_freq = config.get(sel, "partial_sweep")
         sweep_site = config.get(sel, "sweep_site")
-        part_freq = config.get(sel, "partial_sweep")
+        hide = config.getboolean(sel, "hide")
+        sweep_effective_size = config.get(sel, "sweep_effective_size")
         adapt = config.get(sel, "adapt_mutrate")
         left_rho = config.get(sel, "leftRho")
         rrh_left = config.get(sel, "Lrecurrent")
         rrh_loc = config.get(sel, "Rrecurrent")
-        pop0_Ne = config.get(sel, "pop1_effective_size")
-        sweep_Ne = config.get(sel, "sweep_effective_size")
-
-        sel_dict = {"alpha": alpha,
-                    "freq": freq,
-                    "sweep_stop": sweep_stop,
+        sel_dict = {
+                    "mode": mode,
+                    "pop0_Ne": pop0_Ne,
+                    "alpha": alpha,
+                    "sweep_start": sweep_start,
+                    "sweep_stop": sweep_end,
+                    "freq": allele_freq,
+                    "part_freq": partial_freq,
                     "sweep_site": sweep_site,
-                    "part_freq": part_freq,
+                    "sweep_Ne": sweep_effective_size,
                     "adapt": adapt,
                     "left_rho": left_rho,
                     "rrh_left": rrh_left,
-                    "rrh_loc": rrh_loc,
-                    "pop0_Ne": pop0_Ne,
-                    "sweep_Ne": sweep_Ne
+                    "rrh_loc": rrh_loc
                     }
 
         for key in sel_dict.keys():

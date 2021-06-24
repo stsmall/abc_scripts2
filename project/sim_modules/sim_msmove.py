@@ -334,7 +334,7 @@ def simulate_msmove(ms_path, model_dict, demo_dataframe, param_df, sim_number,
             low, high = effective_size
             scaled_Ne = np.random.randint(low, high, sim_number) * ploidy
         else:
-            scaled_Ne = effective_size
+            scaled_Ne = list(effective_size * ploidy)
     else:
         scaled_Ne = [effective_size * ploidy]
 
