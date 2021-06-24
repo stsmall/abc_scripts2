@@ -96,7 +96,10 @@ def draw_params(param_dt, size: int, condition_ls):
     # value should have no tbi
     for tvalue in param_dt["value"]:
         if tvalue:
-            dist, low, high = tvalue
+            try:
+                dist, low, high = tvalue
+            except ValueError:
+                breakpoint()
             assert dist[1:] in avail_dist, "dist not recognized"
             draw = getattr(DrawDist(), dist[1:])
             try:
