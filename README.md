@@ -4,13 +4,9 @@ My goal is to build a customizable set of scripts to allow demographic inference
 
 **TODO**
 * add support for SLiM and pySlim. 
-* option to use MMC, beta or dirac in msprime (not yet stable options in msprime)
+* option to use MMC, beta or dirac in msprime 
 
-## NEW in sims: 
-1. msprime as default
-2. msbgs (for background selection)
-
-## NEW in stats: 
+## Stats: 
 1. 2-locus stats of [momentsLD](https://bitbucket.org/simongravel/moments/src/LD/)
 2. Stats implemented in [Jay et al. 2019](https://doi.org/10.1093/molbev/msz038)
 
@@ -19,8 +15,7 @@ My goal is to build a customizable set of scripts to allow demographic inference
  * scikit-allel   
  * numpy  
  * pandas  
- * msprime  
- * [msbgs](https://zeng-lab.group.shef.ac.uk/wordpress/?page_id=28) *(optional)*
+ * msprime v1.0.1
  * [discoal](https://github.com/kr-colab/discoal) *(optional)*
  * [scrm](https://github.com/scrm/scrm) *(optional)*
 
@@ -40,7 +35,6 @@ My goal is to build a customizable set of scripts to allow demographic inference
 `run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msp_test --stats_cfg examples/stats.example.cfg`  
 `run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out scrm_test --ms scrm --stats_cfg examples/stats.example.cfg`  
 `run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out discoal_test --ms discoal --stats_cfg examples/stats.example.cfg`  
-`run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out msbgs_test --ms msbgs --stats_cfg examples/stats.example.cfg`  
 
 **write sims to file, then calc stats from file**  
 `run_sims.py -cfg examples/model.example.cfg -m examples/model.2test.txt -i 5000 --out scrm.sims.msout --ms scrm`  
