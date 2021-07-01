@@ -220,32 +220,6 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     return outfile
 
 
-def plot_obs_stats(stats_df):
-    import seaborn as sns
-    # laod df
-    df_obs = pd.read_table()
-
-    # pops
-    df_pops = pd.DataFrame(cols='x')
-    df_pops = reshape(df_pops)
-
-    # density plots: TajD, pi, haphet
-    for s in ['TajD, pi, haphet']:
-        sns.lineplot(data=df_pops, x='', y='', hue='pops')
-    # lineplot: spatial_sfs, afIBS, SFS, IBS(diff plots 2,4,6,7...)
-    sns.lineplot(data=df_pops, x='', y='', hue='pops')
-    # boxplots: ld intervals, jsfs
-    sns.boxplot(data=df_pops, ='', y='', hue='pops')
-
-    # pairs
-    df_pairs = pd.DataFrame(cols='x')
-    df_pairs = reshape(df_pairs)
-
-    # density: IBSmaxXY, dxy, dmin, fst, gmin, dd12, dd12rank, Zx
-    sns.lineplot(data=df_pairs, x='', y='', hue='pairs')
-    # box plot: LD between
-    sns.boxplot(data=df_pairs, x='', y='', hue='pairs')
-
 def parse_args(args_in):
     """Parse args.
 
@@ -301,8 +275,6 @@ def parse_args(args_in):
                           " it will build one at that location")
     parser_b.add_argument('-o', "--outfile", default="./",
                           help="path to file where stats will be written")
-    parser_b.add_argument('--plot', action="store_true",
-                          help="make plots for observed data")
     args = parser.parse_args(args_in)
     argsDict = vars(args)
 
@@ -330,7 +302,6 @@ def main():
         coord_bed = argsDict["coords_bed"]
         zarrpath = Path(argsDict["zarr_path"])
         outpath = Path(argsDict["outfile"])
-        plots = argsDict["plot"]
     # =========================================================================
     #  Config parser
     # =========================================================================
@@ -349,10 +320,6 @@ def main():
 
     elif argsDict["mode"] == "obs":
         outfile = calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath)
-        pdplot = plots
-        if pdplot:
-            stats_df = pd.read_csv(outfile)
-            plot_obs_stats(stats_df)
 
 
 if __name__ == "__main__":

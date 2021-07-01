@@ -28,7 +28,6 @@ from project.sim_modules.models import parse_model
 from project.sim_modules.readconfig import read_config_sims
 from project.sim_modules.sim_discoal import simulate_discoal
 from project.sim_modules.sim_msmove import simulate_msmove
-from project.sim_modules.sim_msbgs import simulate_msbgs
 from project.sim_modules.sim_msprime import simulate_msprime
 from project.sim_modules.sim_scrm import simulate_scrm
 
@@ -94,7 +93,7 @@ def parse_args(args_in):
                         help="number of iterations, number of lines. If you want"
                         " replications alter loci in config file")
     parser.add_argument("--ms", type=str, default="msprime",
-                        help=" full path to discoal/msbgs/scrm exe")
+                        help=" full path to discoal/msmove/scrm exe")
     parser.add_argument("--approx", type=str, default='',
                         help="approx to coal w/ recomb for scrm")
     parser.add_argument("--out", type=str, default="model",
@@ -163,9 +162,6 @@ def main():
     elif "msmove" in ms_path:
         simulate_msmove(ms_path, model_dt, demo_df, param_df, sim_number,
                         sim_path, nprocs, stats_config, dry_run)
-    elif "msbgs" in ms_path:
-        simulate_msbgs(model_dt, demo_df, param_df, ms_path,
-                       sim_path, sim_number, outfile)
     elif "scrm" in ms_path:
         simulate_scrm(ms_path, model_dt, demo_df, param_df, sim_number,
                       sim_path, nprocs, stats_config, dry_run, args.approx)

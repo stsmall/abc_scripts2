@@ -182,35 +182,45 @@ def run_simulation(param_df):
         checkDemo(demo_events)
         return None
 
-    trees = msp.sim_ancestry(samples,
-                             recombination_rate=param_df["rec_t"],
-                             demography=demo_events,
-                             num_replicates=model_dt["loci"],
-                             sequence_length=model_dt["contig_length"],
-                             model=model_list)
-    # calc stats
-    stat_mat = np.zeros([model_dt["loci"], header_len])
-    length_bp = stats_dt["length_bp"]
-    pfe = stats_dt["perfixder"]
-    for i, tree in enumerate(trees):
-        tree = msp.sim_mutations(tree,
-                                 rate=param_df["mu_t"],
-                                 model="binary")
-        stats_ls = []
-        pos, haps, counts, bp = read_trees(tree, length_bp, pfe, seq_error=True)
-        stats_dt["breakpoints"] = bp
-        popsumstats = PopSumStats(pos, haps, counts, stats_dt)
-        for stat in stats_dt["calc_stats"]:
-            stat_fx = getattr(popsumstats, stat)
-            try:
-                ss = stat_fx()
-                # print(f"{stat} =  {len(ss)}")
-            except IndexError:
-                ss = [np.nan] * len(stats_dt["pw_quants"])
-            stats_ls.extend(ss)
-        stat_mat[i, :] = stats_ls
+    elif vcf:
+        tree = msp.sim_ancestry(samples,
+                                recombination_rate=param_df["rec_t"],
+                                demography=demo_events,
+                                sequence_length=model_dt["contig_length"],
+                                model=model_list)
+        tree = msp.sim_mutations(tree, rate=param_df["mu_t"])
+        return tree
 
-    return np.nanmean(stat_mat, axis=0)
+    else:
+        trees = msp.sim_ancestry(samples,
+                                 recombination_rate=param_df["rec_t"],
+                                 demography=demo_events,
+                                 num_replicates=model_dt["loci"],
+                                 sequence_length=model_dt["contig_length"],
+                                 model=model_list)
+        # calc stats
+        stat_mat = np.zeros([model_dt["loci"], header_len])
+        length_bp = stats_dt["length_bp"]
+        pfe = stats_dt["perfixder"]
+        for i, tree in enumerate(trees):
+            tree = msp.sim_mutations(tree,
+                                     rate=param_df["mu_t"],
+                                     model="binary")
+            stats_ls = []
+            pos, haps, counts, bp = read_trees(tree, length_bp, pfe, seq_error=True)
+            stats_dt["breakpoints"] = bp
+            popsumstats = PopSumStats(pos, haps, counts, stats_dt)
+            for stat in stats_dt["calc_stats"]:
+                stat_fx = getattr(popsumstats, stat)
+                try:
+                    ss = stat_fx()
+                    # print(f"{stat} =  {len(ss)}")
+                except IndexError:
+                    ss = [np.nan] * len(stats_dt["pw_quants"])
+                stats_ls.extend(ss)
+            stat_mat[i, :] = stats_ls
+
+        return np.nanmean(stat_mat, axis=0)
 
 
 def checkDemo(demo_events):
@@ -398,4 +408,10 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
             pool.close()
         pops_outfile.close()
     else:
-        print("No stats file given with msprime")
+        print("No stats file given with msprime, default VCF")
+        global vcf
+        vcf = True
+        for contig, param in enumerate(param_gen):
+            mts = run_simulation(param)
+            with open(f"{outfile}.contig_{contig}.vcf", "w") as vcf_file:
+                mts.write_vcf(vcf_file, contig_id=f"{contig}")
