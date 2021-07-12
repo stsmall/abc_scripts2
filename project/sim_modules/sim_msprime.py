@@ -379,7 +379,8 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
     global stats_dt
     global header_len
     global header
-
+    global vcf
+    vcf = False
     if dry_run:
         for param in param_gen:
             run_simulation(param)
@@ -409,7 +410,6 @@ def simulate_msprime(model_dict, demo_dataframe, param_df, sim_number: int,
         pops_outfile.close()
     else:
         print("No stats file given with msprime, default VCF")
-        global vcf
         vcf = True
         for contig, param in enumerate(param_gen):
             mts = run_simulation(param)

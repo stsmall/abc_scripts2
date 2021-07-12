@@ -43,7 +43,7 @@ def spatial_histo_fast(pos, count, M, dmax=np.inf):
 
     """
     histo = np.zeros(shape=M, dtype='float')
-    d = [[] for i in range(1, M+1)]
+    spat = [[] for i in range(1, M+1)]
     posfq = [[] for i in range(1, M+1)]
     for snp in range(pos.shape[0]):
         i = count[snp].astype(int)
@@ -52,19 +52,16 @@ def spatial_histo_fast(pos, count, M, dmax=np.inf):
             posfq[i-1].append(pos[snp])
         except IndexError:
             continue
-    [d[i-1].append(x) for i in range(1, M+1) for x in np.diff(posfq[i-1]) if x <= dmax]
-    dist = np.asarray([np.std(d_at_freq) if len(d_at_freq) > 1 else 0.0 for d_at_freq in d])
+    [spat[i-1].append(x) for i in range(1, M+1) for x in np.diff(posfq[i-1]) if x <= dmax]
+    diststd = np.asarray([np.std(d_at_freq) if len(d_at_freq) > 1 else np.nan for d_at_freq in spat])
+    dist = np.asarray([np.mean(d_at_freq) if len(d_at_freq) > 1 else np.nan for d_at_freq in spat])
+    # these can be standardized by dividing by total length. Should allow for comparisons among runs
     sfs = histo/np.sum(histo)
-
-    return dist
+    return diststd
 
 
 def asfs_stats(gt, pos, fold):
     """Calculate the allele frequence spectrum.
-
-    With many individuals the SFS becomes unwieldy, here I collapse the
-    intermediate frequencies into 1 bin. This differs from the one above by
-    randomly sampling to reduce linkage.
 
     Future implementations will utilize the breakpoints from msprime tree object
     to find unlinked positions.
@@ -84,6 +81,7 @@ def asfs_stats(gt, pos, fold):
         DESCRIPTION.
 
     """
+    # TODO: random sample OR use msprime breakpoint to reduce linkage
     gtseg, pos_s = get_seg(gt, pos)
     # sfs
     if fold:

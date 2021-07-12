@@ -51,9 +51,9 @@ def headers(out_file, stats_dt, obs=False):
         afibs_n = [floor((sub-1)/2) for sub in sub_pops]
     pops_dt = {"pi": [1]*n_pops,
                "tajd": [1]*n_pops,
-               "hap_het": [1]*n_pops,
+               "haphet": [1]*n_pops,
                "afibs": afibs_n,
-               "spatial_sfs": spat_n,
+               "spatialsfs": spat_n,
                "ld": [intervals]*n_pops,
                "sfs": sfs_n,
                "ibs": [prob*sizes]*n_pops
@@ -62,13 +62,13 @@ def headers(out_file, stats_dt, obs=False):
                 "dmin": quants,
                 "FST": quants,
                 "gmin": quants,
-                "IBS_maxXY": 1,
+                "IBSmaxXY": 1,
                 "Zx": quants,
                 "jsfs": 23,
-                "ld_2pop": quants,
+                "ld2pop": quants,
                 "ddRank12": quants,
                 "dd12": quants,
-                "delta_tajD": quants
+                "deltatajD": quants
                 }
     header = []
     if obs:
@@ -78,7 +78,7 @@ def headers(out_file, stats_dt, obs=False):
         if p in pops_dt:
             for p_ix in range(0, n_pops):
                 s_ix = pops_dt[p][p_ix]
-                if "pi" in p or "tajd" in p or "hap_het" in p:
+                if "pi" in p or "tajd" in p or "haphet" in p:
                     header.append(f"{p}_pop{p_ix}")
                     header.append(f"{p}std_pop{p_ix}")
                 else:
