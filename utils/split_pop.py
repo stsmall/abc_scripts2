@@ -1,3 +1,6 @@
+""" Split summary stats file by population for ABC inference
+example: split_pop.py abc.obs.mean.txt 2
+"""
 import sys
 from itertools import combinations
 
