@@ -31,6 +31,7 @@ There are two main modes: sims and obs
 import allel
 import argparse
 import glob
+import subprocess
 from math import ceil
 import multiprocessing
 import numcodecs
@@ -141,11 +142,11 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
         ix_e = len(p_ix)*2 + ix_s
         pop_ix.append(list(range(ix_s, ix_e)))
         pop_dt[f"pop{i}"] = gt.take(p_ix, axis=1).to_haplotypes()
-        ix_s += ix_e
+        ix_s = ix_e
 
     # combine and transpose
-    hap_pop = np.concatenate(list(pop_dt.values()), axis=1)
-    haps = hap_pop.T
+    haps = np.concatenate(list(pop_dt.values()), axis=1).T
+
 
     # prep progress bar
     ln_count = 0
@@ -153,6 +154,7 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
         for line in cb:
             if not line.startswith("chrom"):
                 ln_count += 1
+
     progressbar = tqdm(total=ln_count, desc="window numb", unit='window')
 
     # update stats_dt
@@ -167,6 +169,7 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt, obs=True)
 
     # calc stats
+    # TODO: parallel
     chrom_ls = []
     i = 0
     stat_mat = np.zeros([ln_count, len(header_ls)-1])
@@ -199,9 +202,12 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
                     except IndexError:
                         ss = [np.nan] * len(stats_dt["pw_quants"])
                     stats_ls.extend(ss)
-                stat_mat[i, :] = stats_ls
-                i += 1
-                progressbar.update()
+                try:
+                    stat_mat[i, :] = stats_ls
+                    i += 1
+                    progressbar.update()
+                except ValueError:
+                    continue
     # write stats out
     stat_mean = np.round(np.nanmean(stat_mat, axis=0), 5)
     stats_str = "\t".join(map(str, stat_mean[3:]))
