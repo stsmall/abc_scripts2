@@ -22,7 +22,7 @@ def stats_out(stats_arr, out_file, nprocs):
     return out_file
 
 
-def headers(out_file, stats_dt, obs=False):
+def headers(out_file, stats_dt, pop_names=None, obs=False):
     stats_list = stats_dt["calc_stats"]
 
     try:
@@ -73,30 +73,31 @@ def headers(out_file, stats_dt, obs=False):
     header = []
     if obs:
         header.extend(["chrom", "start", "stop", "sites"])
-
+    if not pop_names:
+        pop_names = range(0, n_pops)
     for p in stats_list:
         if p in pops_dt:
-            for p_ix in range(0, n_pops):
+            for p_ix, p_name in enumerate(pop_names):
                 s_ix = pops_dt[p][p_ix]
                 if "pi" in p or "tajd" in p or "haphet" in p:
-                    header.append(f"{p}_pop{p_ix}")
-                    header.append(f"{p}std_pop{p_ix}")
+                    header.append(f"{p}_pop{p_name}")
+                    header.append(f"{p}std_pop{p_name}")
                 else:
                     if "afibs" in p:
-                        header.extend([f"{p}{i}_pop{p_ix}" for i in range(1, s_ix+1)])
-                        header.extend([f"{p}std{i}_pop{p_ix}" for i in range(1, s_ix+1)])
+                        header.extend([f"{p}{i}_pop{p_name}" for i in range(1, s_ix+1)])
+                        header.extend([f"{p}std{i}_pop{p_name}" for i in range(1, s_ix+1)])
                     else:
-                        header.extend([f"{p}{i}_pop{p_ix}" for i in range(1, s_ix+1)])
+                        header.extend([f"{p}{i}_pop{p_name}" for i in range(1, s_ix+1)])
         elif p in cross_dt:
             s_ix = cross_dt[p]
-            for i, j in combinations(range(n_pops), 2):
+            for p1, p2 in combinations(pop_names, 2):
                 if s_ix == 1:
-                    header.append(f"{p}_pop{i}{j}")
+                    header.append(f"{p}_pop{p1}{p2}")
                 elif "dd12" in p or "ddRank12" in p:
-                    header.extend([f"{p}_{k}_{i}_pop{i}{j}" for k in range(1, s_ix+1)])
-                    header.extend([f"{p}_{k}_{j}_pop{i}{j}" for k in range(1, s_ix+1)])
+                    header.extend([f"{p}_{k}_{p1}_pop{p1}{p2}" for k in range(1, s_ix+1)])
+                    header.extend([f"{p}_{k}_{p2}_pop{p1}{p2}" for k in range(1, s_ix+1)])
                 else:
-                    header.extend([f"{p}{k}_pop{i}{j}" for k in range(1, s_ix+1)])
+                    header.extend([f"{p}{k}_pop{p1}{p2}" for k in range(1, s_ix+1)])
         else:
             #breakpoint()
             continue

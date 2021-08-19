@@ -141,7 +141,7 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
         p_ix = panel[panel["population"] == p]["callset_index"].values
         ix_e = len(p_ix)*2 + ix_s
         pop_ix.append(list(range(ix_s, ix_e)))
-        pop_dt[f"pop{i}"] = gt.take(p_ix, axis=1).to_haplotypes()
+        pop_dt[f"pop{p}"] = gt.take(p_ix, axis=1).to_haplotypes()
         ix_s = ix_e
 
     # combine and transpose
@@ -166,7 +166,9 @@ def calc_obsStats(vcfpath, chrom, pops, coord_bed, zarrpath, outpath):
     # write headers
     outfile = outpath.parent / f"{outpath.stem}.Obs.pop_stats.txt"
     pops_outfile = open(outfile, 'w')
-    pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt, obs=True)
+    pops_outfile, header_, header_ls = headers(pops_outfile, stats_dt,
+                                               pop_names=list(pop_dt.keys()),
+                                               obs=True)
 
     # calc stats
     # TODO: parallel
