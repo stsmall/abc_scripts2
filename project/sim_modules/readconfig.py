@@ -220,6 +220,7 @@ def read_config_stats(configFile):
     #  Build stat dictionary
     # =========================================================================
     stat_list = [k for k, j in sim_dt.items() if j]
+    stat_list = list(filter(None, stat_list))
     stats_dt = {"num_haps": n_haps,
                 "pop_config": popconfig,
                 "length_bp": int(length_bp),

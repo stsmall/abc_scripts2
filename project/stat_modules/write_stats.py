@@ -98,7 +98,8 @@ def headers(out_file, stats_dt, obs=False):
                 else:
                     header.extend([f"{p}{k}_pop{i}{j}" for k in range(1, s_ix+1)])
         else:
-            breakpoint()
+            #breakpoint()
+            continue
             print("stat not found")
     out_file.write("{}\n".format("\t".join(header)))
     return out_file, len(header), header
